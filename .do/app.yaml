@@ -1,0 +1,33 @@
+name: skylight
+region: fra  # Frankfurt — le plus proche de l'Algérie
+
+services:
+  - name: backend
+    source_dir: /backend
+    github:
+      branch: main
+      deploy_on_push: true
+    build_command: npm install && npm run build
+    run_command: npm start
+    environment_slug: node-js
+    instance_count: 1
+    instance_size_slug: basic-xxs  # $5/mois
+    http_port: 4000
+    envs:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        value: CHANGE_THIS_TO_RANDOM_SECRET
+        type: SECRET
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: DATABASE_URL
+        scope: RUN_TIME
+        value: ${db.DATABASE_URL}
+
+databases:
+  - name: db
+    engine: PG
+    version: "16"
+    size: db-s-dev-database  # Gratuit pendant 90 jours
+    num_nodes: 1
