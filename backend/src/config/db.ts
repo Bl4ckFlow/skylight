@@ -3,15 +3,16 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+// Remove sslmode from connection string — we handle SSL manually
+const connectionString = process.env.DATABASE_URL?.replace('?sslmode=require', '').replace('&sslmode=require', '');
+
 export const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.DATABASE_URL?.includes('ondigitalocean')
-    ? { rejectUnauthorized: false }
-    : false,
+  connectionString,
+  ssl: { rejectUnauthorized: false },
 });
 
 pool.on('connect', (client) => {
-  client.query("SET search_path TO app, public");
+  client.query("SET search_path TO public");
   console.log('✅ Connected to PostgreSQL');
 });
 
