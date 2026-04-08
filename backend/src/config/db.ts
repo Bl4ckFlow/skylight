@@ -5,9 +5,11 @@ dotenv.config();
 
 export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
 });
 
-pool.on('connect', () => {
+pool.on('connect', (client) => {
+  client.query("SET search_path TO app, public");
   console.log('✅ Connected to PostgreSQL');
 });
 
