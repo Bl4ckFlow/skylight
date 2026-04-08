@@ -6,11 +6,10 @@
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/app.ts",
     "build": "tsc",
-    "start": "node dist/app.js",
-    "postinstall": "npm run build"
+    "start": "node dist/app.js"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": "22.x"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
