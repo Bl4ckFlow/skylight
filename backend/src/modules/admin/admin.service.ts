@@ -1,6 +1,17 @@
 import bcrypt from 'bcryptjs';
 import { pool } from '../../config/db';
 
+export const getPlatformStats = async () => {
+  const result = await pool.query(`
+    SELECT
+      (SELECT COUNT(*) FROM companies)::int AS total_companies,
+      (SELECT COUNT(*) FROM users WHERE role != 'SuperAdmin')::int AS total_users,
+      (SELECT COUNT(*) FROM clients)::int AS total_clients,
+      (SELECT COUNT(*) FROM orders)::int AS total_orders
+  `);
+  return result.rows[0];
+};
+
 export const listCompanies = async () => {
   const result = await pool.query(`
     SELECT

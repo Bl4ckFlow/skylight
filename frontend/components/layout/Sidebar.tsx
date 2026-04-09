@@ -6,8 +6,7 @@ import { LayoutDashboard, Package, Users, ShoppingCart, FileText, LogOut, UserCo
 import clsx from 'clsx';
 import { useAuth } from '@/hooks/useAuth';
 
-const nav = [
-  { href: '/',          label: 'Dashboard', icon: LayoutDashboard },
+const companyNav = [
   { href: '/stock',     label: 'Stock',     icon: Package },
   { href: '/clients',   label: 'Clients',   icon: Users },
   { href: '/commandes', label: 'Commandes', icon: ShoppingCart },
@@ -21,6 +20,7 @@ interface Props {
 export default function Sidebar({ onLogout }: Props) {
   const pathname = usePathname();
   const { user } = useAuth();
+  const isSuperAdmin = user?.role === 'SuperAdmin';
 
   return (
     <aside className="hidden md:flex flex-col w-56 min-h-screen bg-white border-r border-gray-200 py-6 px-3">
@@ -31,7 +31,26 @@ export default function Sidebar({ onLogout }: Props) {
 
       {/* Nav */}
       <nav className="flex-1 space-y-0.5">
-        {nav.map(({ href, label, icon: Icon }) => (
+        {/* Dashboard — visible pour tous */}
+        <Link
+          href="/"
+          className={clsx(
+            'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors duration-150',
+            pathname === '/'
+              ? 'bg-gray-100 text-primary-950 font-semibold'
+              : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900 font-medium'
+          )}
+        >
+          <LayoutDashboard
+            size={16}
+            className={pathname === '/' ? 'text-primary-950' : 'text-gray-400'}
+            strokeWidth={pathname === '/' ? 2.5 : 2}
+          />
+          Dashboard
+        </Link>
+
+        {/* Pages entreprise — masquées pour SuperAdmin */}
+        {!isSuperAdmin && companyNav.map(({ href, label, icon: Icon }) => (
           <Link
             key={href}
             href={href}
@@ -50,11 +69,9 @@ export default function Sidebar({ onLogout }: Props) {
             {label}
           </Link>
         ))}
-      </nav>
 
-      {/* SuperAdmin panel */}
-      {user?.role === 'SuperAdmin' && (
-        <div className="border-t border-gray-100 pt-3 mt-3">
+        {/* SuperAdmin : panel */}
+        {isSuperAdmin && (
           <Link
             href="/admin"
             className={clsx(
@@ -69,14 +86,12 @@ export default function Sidebar({ onLogout }: Props) {
               className={pathname === '/admin' ? 'text-primary-950' : 'text-gray-400'}
               strokeWidth={pathname === '/admin' ? 2.5 : 2}
             />
-            Super Admin
+            Entreprises
           </Link>
-        </div>
-      )}
+        )}
 
-      {/* Admin: Utilisateurs */}
-      {(user?.role === 'Admin' || user?.role === 'SuperAdmin') && (
-        <div className="border-t border-gray-100 pt-3 mt-3">
+        {/* Admin : utilisateurs */}
+        {!isSuperAdmin && (
           <Link
             href="/utilisateurs"
             className={clsx(
@@ -93,10 +108,10 @@ export default function Sidebar({ onLogout }: Props) {
             />
             Utilisateurs
           </Link>
-        </div>
-      )}
+        )}
+      </nav>
 
-      {/* Divider + Logout */}
+      {/* Logout */}
       <div className="border-t border-gray-100 pt-3 mt-3">
         <button
           onClick={onLogout}

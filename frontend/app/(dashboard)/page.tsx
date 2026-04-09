@@ -2,11 +2,73 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { AlertTriangle, ShoppingCart, FileText, Package, Users, TrendingUp } from 'lucide-react';
+import { AlertTriangle, ShoppingCart, FileText, Package, Users, TrendingUp, Building2, Shield } from 'lucide-react';
 import api from '@/lib/api';
 import { Product, Order, Invoice } from '@/types';
+import { useAuth } from '@/hooks/useAuth';
+
+interface PlatformStats {
+  total_companies: number;
+  total_users: number;
+  total_clients: number;
+  total_orders: number;
+}
+
+function SuperAdminDashboard() {
+  const [stats, setStats] = useState<PlatformStats | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.get('/admin/stats').then(r => setStats(r.data)).finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return (
+    <div className="flex items-center justify-center h-64">
+      <div className="w-5 h-5 border-2 border-primary-950 border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <div className="flex items-center gap-2">
+          <Shield size={18} className="text-primary-950" />
+          <h1 className="text-xl font-semibold text-primary-950">Dashboard</h1>
+        </div>
+        <p className="text-gray-400 text-sm mt-0.5">Vue globale de la plateforme</p>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {[
+          { label: 'Entreprises',  value: stats?.total_companies, icon: <Building2 size={15} className="text-[#1E40AF]" />, accent: 'blue',    href: '/admin' },
+          { label: 'Utilisateurs', value: stats?.total_users,     icon: <Users size={15} className="text-[#065F46]" />,     accent: 'green',   href: '/admin' },
+          { label: 'Clients',      value: stats?.total_clients,   icon: <Users size={15} className="text-[#B45309]" />,     accent: 'warning', href: '/admin' },
+          { label: 'Commandes',    value: stats?.total_orders,    icon: <ShoppingCart size={15} className="text-[#991B1B]" />, accent: 'danger', href: '/admin' },
+        ].map(({ label, value, icon, accent, href }) => (
+          <StatCard key={label} label={label} value={value ?? 0} icon={icon} accent={accent} href={href} />
+        ))}
+      </div>
+
+      <div className="card flex items-center justify-between">
+        <div>
+          <p className="font-medium text-gray-900">Gérer les entreprises</p>
+          <p className="text-sm text-gray-400 mt-0.5">Créer et consulter les comptes clients</p>
+        </div>
+        <Link href="/admin" className="btn-primary text-sm">
+          Voir →
+        </Link>
+      </div>
+    </div>
+  );
+}
 
 export default function DashboardPage() {
+  const { user } = useAuth();
+  if (user?.role === 'SuperAdmin') return <SuperAdminDashboard />;
+  return <CompanyDashboard />;
+}
+
+function CompanyDashboard() {
   const [lowStock, setLowStock] = useState<Product[]>([]);
   const [orders, setOrders]     = useState<Order[]>([]);
   const [unpaid, setUnpaid]     = useState<Invoice[]>([]);
