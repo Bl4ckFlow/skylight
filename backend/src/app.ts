@@ -13,9 +13,16 @@ dotenv.config();
 const app = express();
 
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production'
-    ? process.env.FRONTEND_URL
-    : /^http:\/\/localhost:(3000|3001)$/,
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    const allowed = [
+      /^https:\/\/.*\.vercel\.app$/,
+      /^http:\/\/localhost:(3000|3001)$/,
+    ];
+    if (process.env.FRONTEND_URL) allowed.push(new RegExp(`^${process.env.FRONTEND_URL.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`));
+    if (allowed.some(r => r.test(origin))) return callback(null, true);
+    callback(new Error('Not allowed by CORS'));
+  },
   credentials: true,
 }));
 app.use(express.json());
