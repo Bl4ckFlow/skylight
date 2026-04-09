@@ -12,13 +12,17 @@ export interface AuthRequest extends Request {
 
 export const authenticate = (req: AuthRequest, res: Response, next: NextFunction): void => {
   const authHeader = req.headers.authorization;
+  const queryToken = req.query.token as string | undefined;
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  let token: string;
+  if (authHeader?.startsWith('Bearer ')) {
+    token = authHeader.split(' ')[1];
+  } else if (queryToken) {
+    token = queryToken;
+  } else {
     res.status(401).json({ error: 'Token manquant ou invalide' });
     return;
   }
-
-  const token = authHeader.split(' ')[1];
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as AuthRequest['user'];
