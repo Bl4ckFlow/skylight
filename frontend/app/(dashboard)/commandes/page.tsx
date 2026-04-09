@@ -5,6 +5,9 @@ import { Plus, ArrowRight, Clock, History, Truck, Search } from 'lucide-react';
 import api from '@/lib/api';
 import { Order, Client, Product } from '@/types';
 import clsx from 'clsx';
+import { useToast } from '@/hooks/useToast';
+import ToastList from '@/components/ui/ToastList';
+import Pagination from '@/components/ui/Pagination';
 
 const STATUS_STYLES: Record<string, string> = {
   'En attente': 'bg-amber-50 text-amber-700 border border-amber-200',
@@ -34,6 +37,9 @@ export default function CommandesPage() {
   const [products, setProducts]     = useState<Product[]>([]);
   const [filter, setFilter]         = useState('');
   const [search, setSearch]         = useState('');
+  const [page, setPage]             = useState(1);
+  const { toasts, toast, dismiss }  = useToast();
+  const PAGE_SIZE = 15;
   const [loading, setLoading]       = useState(true);
   const [showModal, setShowModal]   = useState(false);
 
@@ -83,9 +89,14 @@ export default function CommandesPage() {
   };
 
   const save = async () => {
-    await api.post('/commandes', form);
-    setShowModal(false);
-    fetchOrders();
+    try {
+      await api.post('/commandes', form);
+      toast('Commande créée');
+      setShowModal(false);
+      fetchOrders();
+    } catch (err: any) {
+      toast(err?.response?.data?.error || 'Une erreur est survenue', 'error');
+    }
   };
 
   const confirmStatus = (orderId: string, newStatus: string) => {
@@ -94,7 +105,12 @@ export default function CommandesPage() {
 
   const applyStatus = async () => {
     if (!confirm) return;
-    await api.patch(`/commandes/${confirm.orderId}/status`, { status: confirm.newStatus });
+    try {
+      await api.patch(`/commandes/${confirm.orderId}/status`, { status: confirm.newStatus });
+      toast(`Statut mis à jour : ${confirm.newStatus}`);
+    } catch (err: any) {
+      toast(err?.response?.data?.error || 'Erreur', 'error');
+    }
     setConfirm(null);
     fetchOrders();
   };
@@ -107,6 +123,8 @@ export default function CommandesPage() {
   const filtered = orders.filter(o =>
     !search || o.client_name?.toLowerCase().includes(search.toLowerCase())
   );
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const handleSearch = (v: string) => { setSearch(v); setPage(1); };
 
   const openLogs = async (order: Order) => {
     setLogOrder(order);
@@ -136,7 +154,7 @@ export default function CommandesPage() {
             type="text"
             placeholder="Rechercher un client..."
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={e => handleSearch(e.target.value)}
             className="input pl-8 text-sm"
           />
         </div>
@@ -157,8 +175,9 @@ export default function CommandesPage() {
           <div className="w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full animate-spin" />
         </div>
       ) : (
+        <>
         <div className="space-y-2">
-          {filtered.map(o => (
+          {paginated.map(o => (
             <div key={o.id} className="card">
               <div className="flex items-center justify-between gap-4">
                 {/* Infos cliquables → logs */}
@@ -203,6 +222,8 @@ export default function CommandesPage() {
           ))}
           {filtered.length === 0 && <p className="text-center text-gray-400 py-12">Aucune commande</p>}
         </div>
+        <Pagination page={page} total={filtered.length} pageSize={PAGE_SIZE} onChange={setPage} />
+        </>
       )}
 
       {/* Modal confirmation changement statut */}
@@ -279,6 +300,8 @@ export default function CommandesPage() {
           </div>
         </div>
       )}
+
+      <ToastList toasts={toasts} dismiss={dismiss} />
 
       {/* Modal nouvelle commande */}
       {showModal && (

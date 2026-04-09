@@ -1,10 +1,15 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Plus, Download, CheckCircle, Clock, History, Lock } from 'lucide-react';
+import { Plus, Download, CheckCircle, Clock, History, Lock, Search } from 'lucide-react';
 import api from '@/lib/api';
 import { Invoice, Order } from '@/types';
 import clsx from 'clsx';
+import { useToast } from '@/hooks/useToast';
+import ToastList from '@/components/ui/ToastList';
+import Pagination from '@/components/ui/Pagination';
+
+const PAGE_SIZE = 15;
 
 interface InvoiceLog {
   id: string;
@@ -16,14 +21,14 @@ export default function FacturesPage() {
   const [invoices, setInvoices]     = useState<Invoice[]>([]);
   const [orders, setOrders]         = useState<Order[]>([]);
   const [filter, setFilter]         = useState('');
+  const [search, setSearch]         = useState('');
   const [loading, setLoading]       = useState(true);
   const [showModal, setShowModal]   = useState(false);
   const [selectedOrder, setSelectedOrder] = useState('');
+  const [page, setPage]             = useState(1);
+  const { toasts, toast, dismiss }  = useToast();
 
-  // Confirmation modal
   const [confirm, setConfirm] = useState<{ invoiceId: string } | null>(null);
-
-  // Log modal
   const [logInvoice, setLogInvoice]   = useState<Invoice | null>(null);
   const [logs, setLogs]               = useState<InvoiceLog[]>([]);
   const [logsLoading, setLogsLoading] = useState(false);
@@ -38,15 +43,32 @@ export default function FacturesPage() {
   useEffect(() => { api.get('/commandes').then(res => setOrders(res.data)); }, []);
   useEffect(() => { fetchInvoices(); }, [filter]);
 
+  const filtered = invoices.filter(inv =>
+    !search || inv.client_name?.toLowerCase().includes(search.toLowerCase())
+  );
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const handleSearch = (v: string) => { setSearch(v); setPage(1); };
+  const handleFilter = (v: string) => { setFilter(v); setPage(1); };
+
   const createInvoice = async () => {
-    await api.post('/factures', { order_id: selectedOrder });
-    setShowModal(false);
-    fetchInvoices();
+    try {
+      await api.post('/factures', { order_id: selectedOrder });
+      toast('Facture créée');
+      setShowModal(false);
+      fetchInvoices();
+    } catch (err: any) {
+      toast(err?.response?.data?.error || 'Une erreur est survenue', 'error');
+    }
   };
 
   const markPaid = async () => {
     if (!confirm) return;
-    await api.patch(`/factures/${confirm.invoiceId}/status`, { payment_status: 'Payé' });
+    try {
+      await api.patch(`/factures/${confirm.invoiceId}/status`, { payment_status: 'Payé' });
+      toast('Facture marquée comme payée');
+    } catch (err: any) {
+      toast(err?.response?.data?.error || 'Erreur', 'error');
+    }
     setConfirm(null);
     fetchInvoices();
   };
@@ -69,23 +91,35 @@ export default function FacturesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Factures</h1>
-          <p className="text-sm text-gray-500">{invoices.length} facture(s)</p>
+          <p className="text-sm text-gray-500">{filtered.length} facture(s)</p>
         </div>
         <button className="btn-primary flex items-center gap-2" onClick={() => setShowModal(true)}>
           <Plus size={16} /> Créer
         </button>
       </div>
 
-      {/* Filtres */}
-      <div className="flex gap-2">
-        {['', 'Payé', 'Non Payé'].map(s => (
-          <button key={s} onClick={() => setFilter(s)}
-            className={clsx('px-3 py-1.5 rounded-full text-sm font-medium transition-colors',
-              filter === s ? 'bg-primary-950 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
-            )}>
-            {s || 'Toutes'}
-          </button>
-        ))}
+      {/* Recherche + Filtres */}
+      <div className="flex flex-col gap-2">
+        <div className="relative">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Rechercher un client..."
+            value={search}
+            onChange={e => handleSearch(e.target.value)}
+            className="input pl-8 text-sm"
+          />
+        </div>
+        <div className="flex gap-2">
+          {['', 'Payé', 'Non Payé'].map(s => (
+            <button key={s} onClick={() => handleFilter(s)}
+              className={clsx('px-3 py-1.5 rounded-full text-sm font-medium transition-colors',
+                filter === s ? 'bg-primary-950 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+              )}>
+              {s || 'Toutes'}
+            </button>
+          ))}
+        </div>
       </div>
 
       {loading ? (
@@ -93,40 +127,46 @@ export default function FacturesPage() {
           <div className="w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full animate-spin" />
         </div>
       ) : (
-        <div className="space-y-2">
-          {invoices.map(inv => (
-            <div key={inv.id} className="card flex items-center justify-between gap-3">
-              <button className="flex-1 text-left min-w-0" onClick={() => openLogs(inv)}>
-                <p className="font-medium text-gray-900">{inv.client_name}</p>
-                <p className="text-xs text-gray-400">{new Date(inv.created_at).toLocaleDateString('fr-FR')}</p>
-              </button>
-
-              <p className="font-semibold text-sm whitespace-nowrap">{Number(inv.total_amount).toLocaleString('fr-DZ')} DA</p>
-
-              {inv.payment_status === 'Payé' ? (
-                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-green-100 text-green-700 cursor-default">
-                  <Lock size={11} /> Payé
-                </div>
-              ) : (
-                <button
-                  onClick={() => setConfirm({ invoiceId: inv.id })}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
-                >
-                  <Clock size={11} /> Marquer payé
+        <>
+          <div className="space-y-2">
+            {paginated.map(inv => (
+              <div key={inv.id} className="card flex items-center justify-between gap-3">
+                <button className="flex-1 text-left min-w-0" onClick={() => openLogs(inv)}>
+                  <p className="font-medium text-gray-900">{inv.client_name}</p>
+                  <p className="text-xs text-gray-400">
+                    {(inv as any).invoice_number && <span className="mr-2 font-mono">{(inv as any).invoice_number}</span>}
+                    {new Date(inv.created_at).toLocaleDateString('fr-FR')}
+                  </p>
                 </button>
-              )}
 
-              <button onClick={() => openLogs(inv)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
-                <History size={15} />
-              </button>
+                <p className="font-semibold text-sm whitespace-nowrap">{Number(inv.total_amount).toLocaleString('fr-DZ')} DA</p>
 
-              <button onClick={() => downloadPDF(inv.id)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500">
-                <Download size={15} />
-              </button>
-            </div>
-          ))}
-          {invoices.length === 0 && <p className="text-center text-gray-400 py-12">Aucune facture</p>}
-        </div>
+                {inv.payment_status === 'Payé' ? (
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-green-100 text-green-700 cursor-default">
+                    <Lock size={11} /> Payé
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setConfirm({ invoiceId: inv.id })}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
+                  >
+                    <Clock size={11} /> Marquer payé
+                  </button>
+                )}
+
+                <button onClick={() => openLogs(inv)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
+                  <History size={15} />
+                </button>
+
+                <button onClick={() => downloadPDF(inv.id)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500">
+                  <Download size={15} />
+                </button>
+              </div>
+            ))}
+            {filtered.length === 0 && <p className="text-center text-gray-400 py-12">Aucune facture</p>}
+          </div>
+          <Pagination page={page} total={filtered.length} pageSize={PAGE_SIZE} onChange={setPage} />
+        </>
       )}
 
       {/* Confirmation paiement */}
@@ -224,6 +264,8 @@ export default function FacturesPage() {
           </div>
         </div>
       )}
+
+      <ToastList toasts={toasts} dismiss={dismiss} />
     </div>
   );
 }

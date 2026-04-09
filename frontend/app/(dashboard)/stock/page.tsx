@@ -5,6 +5,12 @@ import { Plus, Search, Edit2, Trash2, AlertTriangle } from 'lucide-react';
 import api from '@/lib/api';
 import { Product } from '@/types';
 import clsx from 'clsx';
+import { useToast } from '@/hooks/useToast';
+import ToastList from '@/components/ui/ToastList';
+import Pagination from '@/components/ui/Pagination';
+import ConfirmModal from '@/components/ui/ConfirmModal';
+
+const PAGE_SIZE = 15;
 
 export default function StockPage() {
   const [products, setProducts]   = useState<Product[]>([]);
@@ -12,22 +18,31 @@ export default function StockPage() {
   const [loading, setLoading]     = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing]     = useState<Product | null>(null);
+  const [deleteId, setDeleteId]   = useState<string | null>(null);
+  const [page, setPage]           = useState(1);
+  const [saving, setSaving]       = useState(false);
+  const { toasts, toast, dismiss } = useToast();
+
   const [form, setForm] = useState({
     name: '', stock_quantity: 0, buy_price: 0, sell_price: 0, category: '', low_stock_threshold: 5,
   });
 
-  const fetch = async () => {
+  const load = async () => {
     const res = await api.get('/stock');
     setProducts(res.data);
     setLoading(false);
   };
 
-  useEffect(() => { fetch(); }, []);
+  useEffect(() => { load(); }, []);
 
   const filtered = products.filter(p =>
     p.name.toLowerCase().includes(search.toLowerCase()) ||
     p.category?.toLowerCase().includes(search.toLowerCase())
   );
+
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  const handleSearch = (v: string) => { setSearch(v); setPage(1); };
 
   const openCreate = () => {
     setEditing(null);
@@ -45,19 +60,35 @@ export default function StockPage() {
   };
 
   const save = async () => {
-    if (editing) {
-      await api.put(`/stock/${editing.id}`, form);
-    } else {
-      await api.post('/stock', form);
+    setSaving(true);
+    try {
+      if (editing) {
+        await api.put(`/stock/${editing.id}`, form);
+        toast('Produit modifié');
+      } else {
+        await api.post('/stock', form);
+        toast('Produit ajouté');
+      }
+      setShowModal(false);
+      load();
+    } catch {
+      toast('Une erreur est survenue', 'error');
+    } finally {
+      setSaving(false);
     }
-    setShowModal(false);
-    fetch();
   };
 
-  const remove = async (id: string) => {
-    if (!confirm('Supprimer ce produit ?')) return;
-    await api.delete(`/stock/${id}`);
-    fetch();
+  const remove = async () => {
+    if (!deleteId) return;
+    try {
+      await api.delete(`/stock/${deleteId}`);
+      toast('Produit supprimé');
+      load();
+    } catch {
+      toast('Impossible de supprimer ce produit', 'error');
+    } finally {
+      setDeleteId(null);
+    }
   };
 
   return (
@@ -65,7 +96,7 @@ export default function StockPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Stock</h1>
-          <p className="text-sm text-gray-500">{products.length} produit(s)</p>
+          <p className="text-sm text-gray-500">{filtered.length} produit(s)</p>
         </div>
         <button className="btn-primary flex items-center gap-2" onClick={openCreate}>
           <Plus size={16} /> Ajouter
@@ -78,7 +109,7 @@ export default function StockPage() {
           className="input pl-9"
           placeholder="Rechercher un produit..."
           value={search}
-          onChange={e => setSearch(e.target.value)}
+          onChange={e => handleSearch(e.target.value)}
         />
       </div>
 
@@ -87,41 +118,56 @@ export default function StockPage() {
           <div className="w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full animate-spin" />
         </div>
       ) : (
-        <div className="space-y-2">
-          {filtered.map(p => (
-            <div key={p.id} className="card flex items-center justify-between gap-4">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <p className="font-medium text-gray-900 truncate">{p.name}</p>
-                  {p.stock_quantity <= p.low_stock_threshold && (
-                    <AlertTriangle size={14} className="text-orange-500 flex-shrink-0" />
-                  )}
+        <>
+          <div className="space-y-2">
+            {paginated.map(p => (
+              <div key={p.id} className="card flex items-center justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium text-gray-900 truncate">{p.name}</p>
+                    {p.stock_quantity <= p.low_stock_threshold && (
+                      <AlertTriangle size={14} className="text-orange-500 flex-shrink-0" />
+                    )}
+                  </div>
+                  {p.category && <p className="text-xs text-gray-400">{p.category}</p>}
                 </div>
-                {p.category && <p className="text-xs text-gray-400">{p.category}</p>}
+                <div className="text-right text-sm">
+                  <p className={clsx('font-semibold', p.stock_quantity <= p.low_stock_threshold ? 'text-orange-500' : 'text-gray-800')}>
+                    {p.stock_quantity} unités
+                  </p>
+                  <p className="text-gray-400">{Number(p.sell_price).toLocaleString('fr-DZ')} DA</p>
+                </div>
+                <div className="flex gap-1">
+                  <button onClick={() => openEdit(p)} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500">
+                    <Edit2 size={15} />
+                  </button>
+                  <button onClick={() => setDeleteId(p.id)} className="p-2 rounded-lg hover:bg-red-50 text-gray-500 hover:text-red-500">
+                    <Trash2 size={15} />
+                  </button>
+                </div>
               </div>
-              <div className="text-right text-sm">
-                <p className={clsx('font-semibold', p.stock_quantity <= p.low_stock_threshold ? 'text-orange-500' : 'text-gray-800')}>
-                  {p.stock_quantity} unités
-                </p>
-                <p className="text-gray-400">{Number(p.sell_price).toLocaleString('fr-DZ')} DA</p>
-              </div>
-              <div className="flex gap-1">
-                <button onClick={() => openEdit(p)} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500">
-                  <Edit2 size={15} />
-                </button>
-                <button onClick={() => remove(p.id)} className="p-2 rounded-lg hover:bg-red-50 text-gray-500 hover:text-red-500">
-                  <Trash2 size={15} />
-                </button>
-              </div>
-            </div>
-          ))}
-          {filtered.length === 0 && (
-            <p className="text-center text-gray-400 py-12">Aucun produit trouvé</p>
-          )}
-        </div>
+            ))}
+            {filtered.length === 0 && (
+              <p className="text-center text-gray-400 py-12">Aucun produit trouvé</p>
+            )}
+          </div>
+          <Pagination page={page} total={filtered.length} pageSize={PAGE_SIZE} onChange={setPage} />
+        </>
       )}
 
-      {/* Modal */}
+      {/* Confirm suppression */}
+      {deleteId && (
+        <ConfirmModal
+          title="Supprimer le produit ?"
+          message="Cette action est irréversible."
+          confirmLabel="Supprimer"
+          danger
+          onConfirm={remove}
+          onCancel={() => setDeleteId(null)}
+        />
+      )}
+
+      {/* Modal édition */}
       {showModal && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-end md:items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-md p-6 space-y-4">
@@ -146,11 +192,15 @@ export default function StockPage() {
             ))}
             <div className="flex gap-3 pt-2">
               <button className="btn-secondary flex-1" onClick={() => setShowModal(false)}>Annuler</button>
-              <button className="btn-primary flex-1" onClick={save}>Enregistrer</button>
+              <button className="btn-primary flex-1" onClick={save} disabled={saving}>
+                {saving ? 'Enregistrement...' : 'Enregistrer'}
+              </button>
             </div>
           </div>
         </div>
       )}
+
+      <ToastList toasts={toasts} dismiss={dismiss} />
     </div>
   );
 }
