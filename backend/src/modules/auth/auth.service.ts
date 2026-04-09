@@ -4,7 +4,7 @@ import { pool } from '../../config/db';
 
 export const loginUser = async (email: string, password: string) => {
   const result = await pool.query(
-    'SELECT id, company_id, email, password_hash, role FROM users WHERE email = $1',
+    'SELECT id, company_id, email, password_hash, role, must_change_password FROM users WHERE email = $1',
     [email]
   );
 
@@ -15,14 +15,14 @@ export const loginUser = async (email: string, password: string) => {
   if (!valid) throw new Error('Identifiants incorrects');
 
   const token = jwt.sign(
-    { id: user.id, company_id: user.company_id, role: user.role, email: user.email },
+    { id: user.id, company_id: user.company_id, role: user.role, email: user.email, must_change_password: user.must_change_password },
     process.env.JWT_SECRET as string,
-    { expiresIn: 60 * 60 * 24 * 7 } // 7 jours en secondes
+    { expiresIn: 60 * 60 * 24 * 7 }
   );
 
   return {
     token,
-    user: { id: user.id, email: user.email, role: user.role, company_id: user.company_id },
+    user: { id: user.id, email: user.email, role: user.role, company_id: user.company_id, must_change_password: user.must_change_password },
   };
 };
 
@@ -42,10 +42,18 @@ export const createUser = async (
 ) => {
   const hash = await bcrypt.hash(password, 10);
   const result = await pool.query(
-    `INSERT INTO users (company_id, email, password_hash, role)
-     VALUES ($1, $2, $3, $4)
+    `INSERT INTO users (company_id, email, password_hash, role, must_change_password)
+     VALUES ($1, $2, $3, $4, true)
      RETURNING id, email, role, company_id, created_at`,
     [company_id, email, hash, role]
   );
   return result.rows[0];
+};
+
+export const changePassword = async (user_id: string, newPassword: string) => {
+  const hash = await bcrypt.hash(newPassword, 10);
+  await pool.query(
+    'UPDATE users SET password_hash = $1, must_change_password = false WHERE id = $2',
+    [hash, user_id]
+  );
 };

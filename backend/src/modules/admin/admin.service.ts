@@ -60,8 +60,8 @@ export const createCompanyWithAdmin = async (
 
     const hash = await bcrypt.hash(adminPassword, 10);
     const userResult = await client.query(
-      `INSERT INTO users (company_id, email, password_hash, role)
-       VALUES ($1, $2, $3, 'Admin') RETURNING id, email, role, company_id, created_at`,
+      `INSERT INTO users (company_id, email, password_hash, role, must_change_password)
+       VALUES ($1, $2, $3, 'Admin', true) RETURNING id, email, role, company_id, created_at`,
       [company.id, adminEmail, hash]
     );
 

@@ -18,7 +18,12 @@ export const useAuth = () => {
       return;
     }
     api.get('/auth/me')
-      .then((res) => setUser(res.data))
+      .then((res) => {
+        setUser(res.data);
+        if (res.data.must_change_password) {
+          router.push('/change-password');
+        }
+      })
       .catch(() => {
         localStorage.removeItem('token');
         router.push('/login');

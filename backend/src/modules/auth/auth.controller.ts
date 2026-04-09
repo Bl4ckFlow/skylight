@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { loginUser, createUser, getUsers } from './auth.service';
+import { loginUser, createUser, getUsers, changePassword } from './auth.service';
 import { AuthRequest } from '../../middleware/auth';
 
 export const login = async (req: Request, res: Response): Promise<void> => {
@@ -41,6 +41,20 @@ export const register = async (req: AuthRequest, res: Response): Promise<void> =
 
 export const me = async (req: AuthRequest, res: Response): Promise<void> => {
   res.json(req.user);
+};
+
+export const updatePassword = async (req: AuthRequest, res: Response): Promise<void> => {
+  const { password } = req.body;
+  if (!password || password.length < 6) {
+    res.status(400).json({ error: 'Le mot de passe doit contenir au moins 6 caractères' });
+    return;
+  }
+  try {
+    await changePassword(req.user!.id, password);
+    res.json({ success: true });
+  } catch {
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
 };
 
 export const listUsers = async (req: AuthRequest, res: Response): Promise<void> => {

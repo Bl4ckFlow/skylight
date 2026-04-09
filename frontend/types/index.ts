@@ -3,6 +3,7 @@ export interface User {
   email: string;
   role: 'Admin' | 'Employé' | 'SuperAdmin';
   company_id: string;
+  must_change_password: boolean;
 }
 
 export interface Product {
