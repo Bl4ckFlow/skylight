@@ -1,5 +1,11 @@
 import { pool } from '../../config/db';
 
+const STATUS_ORDER: Record<string, number> = {
+  'En attente': 0,
+  'En cours':   1,
+  'Livrée':     2,
+};
+
 export const getOrders = async (company_id: string, status?: string) => {
   const query = status
     ? 'SELECT o.*, c.full_name AS client_name FROM orders o JOIN clients c ON c.id = o.client_id WHERE o.company_id = $1 AND o.status = $2 ORDER BY o.created_at DESC'
@@ -30,6 +36,17 @@ export const getOrderById = async (id: string, company_id: string) => {
   return { ...order.rows[0], items: items.rows };
 };
 
+export const getOrderLogs = async (order_id: string, company_id: string) => {
+  const result = await pool.query(
+    `SELECT ol.* FROM order_logs ol
+     JOIN orders o ON o.id = ol.order_id
+     WHERE ol.order_id = $1 AND o.company_id = $2
+     ORDER BY ol.changed_at ASC`,
+    [order_id, company_id]
+  );
+  return result.rows;
+};
+
 export const createOrder = async (
   company_id: string,
   client_id: string,
@@ -51,7 +68,6 @@ export const createOrder = async (
     const order = orderResult.rows[0];
 
     for (const item of items) {
-      // Vérifier stock disponible
       const stock = await client.query(
         'SELECT stock_quantity FROM products WHERE id = $1 AND company_id = $2',
         [item.product_id, company_id]
@@ -65,7 +81,6 @@ export const createOrder = async (
          VALUES ($1, $2, $3, $4)`,
         [order.id, item.product_id, item.quantity, item.unit_price]
       );
-      // Le trigger SQL gère la décrémentation du stock
     }
 
     await client.query('COMMIT');
@@ -78,12 +93,37 @@ export const createOrder = async (
   }
 };
 
-export const updateOrderStatus = async (id: string, company_id: string, status: string) => {
+export const updateOrderStatus = async (
+  id: string,
+  company_id: string,
+  newStatus: string,
+  userId: string,
+  userEmail: string
+) => {
+  const current = await pool.query(
+    'SELECT status FROM orders WHERE id = $1 AND company_id = $2',
+    [id, company_id]
+  );
+  if (!current.rows[0]) return null;
+
+  const currentStatus = current.rows[0].status;
+
+  if (STATUS_ORDER[newStatus] <= STATUS_ORDER[currentStatus]) {
+    throw new Error(`Impossible de revenir à "${newStatus}" depuis "${currentStatus}"`);
+  }
+
   const result = await pool.query(
     `UPDATE orders SET status = $1 WHERE id = $2 AND company_id = $3 RETURNING *`,
-    [status, id, company_id]
+    [newStatus, id, company_id]
   );
-  return result.rows[0] || null;
+
+  await pool.query(
+    `INSERT INTO order_logs (order_id, from_status, to_status, changed_by_user_id, changed_by_email)
+     VALUES ($1, $2, $3, $4, $5)`,
+    [id, currentStatus, newStatus, userId, userEmail]
+  );
+
+  return result.rows[0];
 };
 
 export const deleteOrder = async (id: string, company_id: string) => {

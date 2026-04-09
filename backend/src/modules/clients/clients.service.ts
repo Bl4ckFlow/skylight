@@ -1,5 +1,17 @@
 import { pool } from '../../config/db';
 
+type ClientData = {
+  full_name: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  client_type?: string;
+  nif?: string;
+  nis?: string;
+  rc?: string;
+  ai?: string;
+};
+
 export const getClients = async (company_id: string) => {
   const result = await pool.query(
     'SELECT * FROM clients WHERE company_id = $1 ORDER BY full_name ASC',
@@ -36,28 +48,33 @@ export const getClientOrders = async (id: string, company_id: string) => {
   return result.rows;
 };
 
-export const createClient = async (
-  company_id: string,
-  data: { full_name: string; phone?: string; email?: string; address?: string }
-) => {
+export const createClient = async (company_id: string, data: ClientData) => {
   const result = await pool.query(
-    `INSERT INTO clients (company_id, full_name, phone, email, address)
-     VALUES ($1, $2, $3, $4, $5)
+    `INSERT INTO clients (company_id, full_name, phone, email, address, client_type, nif, nis, rc, ai)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
      RETURNING *`,
-    [company_id, data.full_name, data.phone ?? null, data.email ?? null, data.address ?? null]
+    [
+      company_id,
+      data.full_name,
+      data.phone ?? null,
+      data.email ?? null,
+      data.address ?? null,
+      data.client_type ?? 'Particulier',
+      data.nif ?? null,
+      data.nis ?? null,
+      data.rc ?? null,
+      data.ai ?? null,
+    ]
   );
   return result.rows[0];
 };
 
-export const updateClient = async (
-  id: string,
-  company_id: string,
-  data: Partial<{ full_name: string; phone: string; email: string; address: string }>
-) => {
-  const fields = Object.keys(data);
+export const updateClient = async (id: string, company_id: string, data: Partial<ClientData>) => {
+  const allowed = ['full_name', 'phone', 'email', 'address', 'client_type', 'nif', 'nis', 'rc', 'ai'];
+  const fields = Object.keys(data).filter(k => allowed.includes(k));
   if (fields.length === 0) throw new Error('Aucun champ à mettre à jour');
   const setClause = fields.map((f, i) => `${f} = $${i + 1}`).join(', ');
-  const values = Object.values(data);
+  const values = fields.map(f => (data as any)[f]);
   const result = await pool.query(
     `UPDATE clients SET ${setClause} WHERE id = $${fields.length + 1} AND company_id = $${fields.length + 2} RETURNING *`,
     [...values, id, company_id]

@@ -42,8 +42,18 @@ export const getInvoiceById = async (id: string, company_id: string) => {
   return result.rows[0] || null;
 };
 
+export const getInvoiceLogs = async (invoice_id: string, company_id: string) => {
+  const result = await pool.query(
+    `SELECT il.* FROM invoice_logs il
+     JOIN invoices i ON i.id = il.invoice_id
+     WHERE il.invoice_id = $1 AND i.company_id = $2
+     ORDER BY il.changed_at ASC`,
+    [invoice_id, company_id]
+  );
+  return result.rows;
+};
+
 export const createInvoice = async (company_id: string, order_id: string) => {
-  // Vérifier que la commande appartient à la company
   const order = await pool.query(
     'SELECT id FROM orders WHERE id = $1 AND company_id = $2',
     [order_id, company_id]
@@ -59,12 +69,35 @@ export const createInvoice = async (company_id: string, order_id: string) => {
   return result.rows[0];
 };
 
-export const updatePaymentStatus = async (id: string, company_id: string, payment_status: string) => {
+export const updatePaymentStatus = async (
+  id: string,
+  company_id: string,
+  payment_status: string,
+  userId: string,
+  userEmail: string
+) => {
+  const current = await pool.query(
+    'SELECT payment_status FROM invoices WHERE id = $1 AND company_id = $2',
+    [id, company_id]
+  );
+  if (!current.rows[0]) return null;
+
+  if (current.rows[0].payment_status === 'Payé') {
+    throw new Error('Une facture payée ne peut pas être modifiée');
+  }
+
   const result = await pool.query(
     `UPDATE invoices SET payment_status = $1 WHERE id = $2 AND company_id = $3 RETURNING *`,
     [payment_status, id, company_id]
   );
-  return result.rows[0] || null;
+
+  await pool.query(
+    `INSERT INTO invoice_logs (invoice_id, changed_by_user_id, changed_by_email)
+     VALUES ($1, $2, $3)`,
+    [id, userId, userEmail]
+  );
+
+  return result.rows[0];
 };
 
 export const updatePdfUrl = async (id: string, company_id: string, pdf_url: string) => {

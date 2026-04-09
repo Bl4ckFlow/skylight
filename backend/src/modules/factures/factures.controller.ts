@@ -15,6 +15,11 @@ export const getOne = async (req: AuthRequest, res: Response): Promise<void> => 
   res.json(invoice);
 };
 
+export const getLogs = async (req: AuthRequest, res: Response): Promise<void> => {
+  const logs = await service.getInvoiceLogs(req.params.id, req.user!.company_id);
+  res.json(logs);
+};
+
 export const create = async (req: AuthRequest, res: Response): Promise<void> => {
   const { order_id } = req.body;
   if (!order_id) { res.status(400).json({ error: 'order_id est requis' }); return; }
@@ -36,9 +41,19 @@ export const updateStatus = async (req: AuthRequest, res: Response): Promise<voi
     res.status(400).json({ error: 'Statut invalide : "Payé" ou "Non Payé"' });
     return;
   }
-  const invoice = await service.updatePaymentStatus(req.params.id, req.user!.company_id, payment_status);
-  if (!invoice) { res.status(404).json({ error: 'Facture introuvable' }); return; }
-  res.json(invoice);
+  try {
+    const invoice = await service.updatePaymentStatus(
+      req.params.id,
+      req.user!.company_id,
+      payment_status,
+      req.user!.id,
+      req.user!.email
+    );
+    if (!invoice) { res.status(404).json({ error: 'Facture introuvable' }); return; }
+    res.json(invoice);
+  } catch (err: any) {
+    res.status(400).json({ error: err.message });
+  }
 };
 
 export const downloadPDF = async (req: AuthRequest, res: Response): Promise<void> => {

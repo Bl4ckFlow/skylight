@@ -16,6 +16,11 @@ export const getOne = async (req: AuthRequest, res: Response): Promise<void> => 
   res.json(order);
 };
 
+export const getLogs = async (req: AuthRequest, res: Response): Promise<void> => {
+  const logs = await service.getOrderLogs(req.params.id, req.user!.company_id);
+  res.json(logs);
+};
+
 export const create = async (req: AuthRequest, res: Response): Promise<void> => {
   const { client_id, items, notes } = req.body;
 
@@ -40,9 +45,19 @@ export const updateStatus = async (req: AuthRequest, res: Response): Promise<voi
     return;
   }
 
-  const order = await service.updateOrderStatus(req.params.id, req.user!.company_id, status);
-  if (!order) { res.status(404).json({ error: 'Commande introuvable' }); return; }
-  res.json(order);
+  try {
+    const order = await service.updateOrderStatus(
+      req.params.id,
+      req.user!.company_id,
+      status,
+      req.user!.id,
+      req.user!.email
+    );
+    if (!order) { res.status(404).json({ error: 'Commande introuvable' }); return; }
+    res.json(order);
+  } catch (err: any) {
+    res.status(400).json({ error: err.message });
+  }
 };
 
 export const remove = async (req: AuthRequest, res: Response): Promise<void> => {
