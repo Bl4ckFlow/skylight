@@ -3,19 +3,8 @@ import { loginUser, createUser, getUsers, changePassword } from './auth.service'
 import { AuthRequest } from '../../middleware/auth';
 
 export const login = async (req: Request, res: Response): Promise<void> => {
-  const { email, password } = req.body;
-
-  if (!email || !password) {
-    res.status(400).json({ error: 'Email et mot de passe requis' });
-    return;
-  }
-
-  try {
-    const data = await loginUser(email, password);
-    res.json(data);
-  } catch (err: any) {
-    res.status(401).json({ error: err.message });
-  }
+  const data = await loginUser(req.body.email, req.body.password);
+  res.json(data);
 };
 
 export const register = async (req: AuthRequest, res: Response): Promise<void> => {

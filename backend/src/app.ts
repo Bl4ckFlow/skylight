@@ -30,6 +30,33 @@ app.use(cors({
 }));
 app.use(express.json());
 
+import helmet from 'helmet';
+// rateLimit fixed in rateLimit.ts
+
+import winston from 'winston';
+import { errorHandler } from './middleware/errorHandler';
+import { validate } from './middleware/validate';
+
+// Logger
+const logger = winston.createLogger({
+  level: 'info',
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.errors({ stack: true }),
+    winston.format.json()
+  ),
+  transports: [
+    new winston.transports.Console({ format: winston.format.simple() }),
+    new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
+  ],
+});
+
+// Middleware
+app.use(helmet());
+import { apiLimiter } from './middleware/rateLimit';
+app.use(apiLimiter as any);
+app.use(express.json({ limit: '10mb' }));
+
 // Routes
 app.use('/api/auth',      authRoutes);
 app.use('/api/stock',     stockRoutes);
@@ -37,15 +64,18 @@ app.use('/api/clients',   clientsRoutes);
 app.use('/api/commandes', commandesRoutes);
 app.use('/api/factures',  facturesRoutes);
 app.use('/api/admin',     adminRoutes);
-app.use('/api/settings',   settingsRoutes);
-app.use('/api/dashboard',  dashboardRoutes);
+app.use('/api/settings',  settingsRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
-// Health check
+// Health
 app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
 
+// Error handler LAST
+app.use(errorHandler);
+
 const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => {
-  console.log(`🚀 Skylight API running on http://localhost:${PORT}`);
+app.listen(Number(PORT), '0.0.0.0', () => {
+  logger.info(`🚀 Skylight API on port ${PORT}`);
 });
 
 export default app;

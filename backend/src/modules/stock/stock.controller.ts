@@ -19,19 +19,8 @@ export const getOne = async (req: AuthRequest, res: Response): Promise<void> => 
 };
 
 export const create = async (req: AuthRequest, res: Response): Promise<void> => {
-  const { name, stock_quantity, buy_price, sell_price, category, low_stock_threshold } = req.body;
-  if (!name || buy_price == null || sell_price == null) {
-    res.status(400).json({ error: 'Champs requis : name, buy_price, sell_price' });
-    return;
-  }
-  try {
-    const product = await service.createProduct(req.user!.company_id, {
-      name, stock_quantity, buy_price, sell_price, category, low_stock_threshold,
-    });
-    res.status(201).json(product);
-  } catch {
-    res.status(500).json({ error: 'Erreur serveur' });
-  }
+  const product = await service.createProduct(req.user!.company_id, req.body);
+  res.status(201).json(product);
 };
 
 export const update = async (req: AuthRequest, res: Response): Promise<void> => {

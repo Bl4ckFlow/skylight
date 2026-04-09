@@ -19,14 +19,8 @@ export const getOrders = async (req: AuthRequest, res: Response): Promise<void> 
 };
 
 export const create = async (req: AuthRequest, res: Response): Promise<void> => {
-  const { full_name, phone, email, address } = req.body;
-  if (!full_name) { res.status(400).json({ error: 'Le nom complet est requis' }); return; }
-  try {
-    const client = await service.createClient(req.user!.company_id, { full_name, phone, email, address });
-    res.status(201).json(client);
-  } catch {
-    res.status(500).json({ error: 'Erreur serveur' });
-  }
+  const client = await service.createClient(req.user!.company_id, req.body);
+  res.status(201).json(client);
 };
 
 export const update = async (req: AuthRequest, res: Response): Promise<void> => {

@@ -16,8 +16,11 @@ router.get('/',               list);
 router.get('/:id',            getOne);
 router.get('/:id/logs',       getLogs);
 router.get('/:id/bl',         downloadBL);
-router.post('/',              create);
-router.patch('/:id/status',   updateStatus);
+import { validate } from '../../middleware/validate';
+import { createOrderSchema, updateStatusSchema } from '../../schemas';
+
+router.post('/',              validate(createOrderSchema), create);
+router.patch('/:id/status',   validate(updateStatusSchema), updateStatus);
 router.delete('/:id',         remove);
 
 export default router;

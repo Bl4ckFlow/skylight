@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { authenticate } from '../../middleware/auth';
 import { canFactures } from '../../middleware/permissions';
+import { validate } from '../../middleware/validate';
+import { invoicePaymentSchema } from '../../schemas';
 import { list, getOne, getLogs, create, updateStatus, downloadPDF } from './factures.controller';
 
 const router = Router();
@@ -13,6 +15,6 @@ router.get('/:id',                 getOne);
 router.get('/:id/logs',            getLogs);
 router.get('/:id/pdf',             downloadPDF);
 router.post('/',                   create);
-router.patch('/:id/status',        updateStatus);
+router.patch('/:id/status',        validate(invoicePaymentSchema), updateStatus);
 
 export default router;
