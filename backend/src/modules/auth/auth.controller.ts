@@ -50,8 +50,8 @@ export const updatePassword = async (req: AuthRequest, res: Response): Promise<v
     return;
   }
   try {
-    await changePassword(req.user!.id, password);
-    res.json({ success: true });
+    const data = await changePassword(req.user!.id, password);
+    res.json(data);
   } catch {
     res.status(500).json({ error: 'Erreur serveur' });
   }

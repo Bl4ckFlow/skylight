@@ -52,8 +52,15 @@ export const createUser = async (
 
 export const changePassword = async (user_id: string, newPassword: string) => {
   const hash = await bcrypt.hash(newPassword, 10);
-  await pool.query(
-    'UPDATE users SET password_hash = $1, must_change_password = false WHERE id = $2',
+  const result = await pool.query(
+    'UPDATE users SET password_hash = $1, must_change_password = false WHERE id = $2 RETURNING id, company_id, email, role',
     [hash, user_id]
   );
+  const user = result.rows[0];
+  const token = jwt.sign(
+    { id: user.id, company_id: user.company_id, role: user.role, email: user.email, must_change_password: false },
+    process.env.JWT_SECRET as string,
+    { expiresIn: 60 * 60 * 24 * 7 }
+  );
+  return { token, user: { ...user, must_change_password: false } };
 };

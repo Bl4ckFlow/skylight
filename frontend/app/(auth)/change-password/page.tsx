@@ -27,8 +27,8 @@ export default function ChangePasswordPage() {
 
     setLoading(true);
     try {
-      await api.post('/auth/change-password', { password });
-      // Refresh token info by re-logging or just redirecting
+      const res = await api.post('/auth/change-password', { password });
+      localStorage.setItem('token', res.data.token);
       router.push('/');
     } catch (err: any) {
       setError(err.response?.data?.error || 'Erreur serveur');
