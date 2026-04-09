@@ -239,7 +239,7 @@ export default function CommandesPage() {
       {/* Modal confirmation changement statut */}
       {confirm && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-sm p-6 space-y-4">
+          <div className="bg-white dark:bg-gray-900 dark:border dark:border-gray-800 rounded-2xl w-full max-w-sm p-6 space-y-4">
             <h2 className="font-bold text-lg">Confirmer le changement</h2>
             <p className="text-gray-600 text-sm">
               Passer la commande à <span className="font-semibold">"{confirm.newStatus}"</span> ?
@@ -257,7 +257,7 @@ export default function CommandesPage() {
       {/* Modal logs */}
       {logOrder && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-end md:items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md p-6 space-y-4">
+          <div className="bg-white dark:bg-gray-900 dark:border dark:border-gray-800 rounded-2xl w-full max-w-md p-6 space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="font-bold text-lg">Historique</h2>
@@ -316,7 +316,7 @@ export default function CommandesPage() {
       {/* Modal nouvelle commande */}
       {showModal && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-end md:items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl w-full max-w-lg p-6 space-y-4 my-4">
+          <div className="bg-white dark:bg-gray-900 dark:border dark:border-gray-800 rounded-2xl w-full max-w-lg p-6 space-y-4 my-4">
             <h2 className="font-bold text-lg">Nouvelle commande</h2>
             <div>
               <label className="text-sm font-medium text-gray-700 block mb-1">Client *</label>

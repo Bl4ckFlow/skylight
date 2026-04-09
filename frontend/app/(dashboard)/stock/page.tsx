@@ -198,7 +198,7 @@ export default function StockPage() {
       {/* Modal édition */}
       {showModal && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-end md:items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md p-6 space-y-4">
+          <div className="bg-white dark:bg-gray-900 dark:border dark:border-gray-800 rounded-2xl w-full max-w-md p-6 space-y-4">
             <h2 className="font-bold text-lg">{editing ? 'Modifier' : 'Ajouter'} un produit</h2>
             {[
               { label: 'Nom du produit *', key: 'name', type: 'text' },

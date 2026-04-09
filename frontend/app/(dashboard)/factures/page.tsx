@@ -172,7 +172,7 @@ export default function FacturesPage() {
       {/* Confirmation paiement */}
       {confirm && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-sm p-6 space-y-4">
+          <div className="bg-white dark:bg-gray-900 dark:border dark:border-gray-800 rounded-2xl w-full max-w-sm p-6 space-y-4">
             <h2 className="font-bold text-lg">Confirmer le paiement</h2>
             <p className="text-gray-600 text-sm">
               Marquer cette facture comme <span className="font-semibold">Payée</span> ?
@@ -190,7 +190,7 @@ export default function FacturesPage() {
       {/* Modal logs */}
       {logInvoice && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-end md:items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md p-6 space-y-4">
+          <div className="bg-white dark:bg-gray-900 dark:border dark:border-gray-800 rounded-2xl w-full max-w-md p-6 space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="font-bold text-lg">Historique paiement</h2>
@@ -244,7 +244,7 @@ export default function FacturesPage() {
       {/* Modal créer facture */}
       {showModal && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-end md:items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md p-6 space-y-4">
+          <div className="bg-white dark:bg-gray-900 dark:border dark:border-gray-800 rounded-2xl w-full max-w-md p-6 space-y-4">
             <h2 className="font-bold text-lg">Créer une facture</h2>
             <div>
               <label className="text-sm font-medium text-gray-700 block mb-1">Commande *</label>

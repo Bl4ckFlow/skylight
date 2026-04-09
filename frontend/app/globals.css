@@ -18,15 +18,21 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-.dark body {
-  background-color: #09090b;
-  color: #fafafa;
-}
-
+/* ── Dark mode base ─────────────────────────────────────────────────────────── */
 html.dark {
   color-scheme: dark;
 }
+.dark body {
+  background-color: #0a0a0a;
+  color: #f4f4f5;
+}
 
+/* Page background */
+.dark .flex.min-h-screen {
+  background-color: #0a0a0a;
+}
+
+/* ── Components ─────────────────────────────────────────────────────────────── */
 @layer components {
   .btn-primary {
     @apply bg-primary-950 hover:bg-primary-800 text-white text-sm font-medium px-4 py-2 rounded-lg transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed;
@@ -45,7 +51,7 @@ html.dark {
 
   .input {
     @apply w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-primary-950 focus:border-primary-950 transition-colors shadow-sm;
-    @apply dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100 dark:placeholder-gray-500 dark:focus:ring-gray-400 dark:focus:border-gray-400;
+    @apply dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100 dark:placeholder-gray-500 dark:focus:ring-gray-400 dark:focus:border-gray-500;
   }
 
   .badge-success {
@@ -61,3 +67,42 @@ html.dark {
     @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#EFF6FF] text-[#1E40AF] border border-[#DBEAFE];
   }
 }
+
+/* ── Dark mode global text/bg overrides ─────────────────────────────────────── */
+/* These cascade onto components that use plain Tailwind classes without dark: */
+
+.dark .text-gray-900 { color: #f4f4f5 !important; }
+.dark .text-gray-800 { color: #e4e4e7 !important; }
+.dark .text-gray-700 { color: #d4d4d8 !important; }
+.dark .text-gray-600 { color: #a1a1aa !important; }
+.dark .text-gray-500 { color: #71717a !important; }
+.dark .text-gray-400 { color: #52525b !important; }
+
+.dark .bg-white     { background-color: #111111 !important; }
+.dark .bg-gray-50   { background-color: #141414 !important; }
+.dark .bg-gray-100  { background-color: #1c1c1c !important; }
+.dark .bg-gray-200  { background-color: #27272a !important; }
+
+.dark .border-gray-100 { border-color: #27272a !important; }
+.dark .border-gray-200 { border-color: #3f3f46 !important; }
+
+.dark .divide-gray-100 > * + * { border-color: #27272a !important; }
+
+/* Modals */
+.dark .fixed .bg-white {
+  background-color: #18181b !important;
+  border-color: #3f3f46;
+}
+
+/* Select in dark mode */
+.dark select.input,
+.dark select {
+  background-color: #1c1c1c;
+  color: #f4f4f5;
+  border-color: #3f3f46;
+}
+
+/* Scrollbar dark */
+.dark ::-webkit-scrollbar { width: 6px; }
+.dark ::-webkit-scrollbar-track { background: #111; }
+.dark ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 3px; }

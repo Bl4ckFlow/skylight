@@ -25,21 +25,21 @@ export default function Pagination({ page, total, pageSize, onChange }: Props) {
 
   return (
     <div className="flex items-center justify-between pt-2">
-      <p className="text-xs text-gray-400">
+      <p className="text-xs text-gray-400 dark:text-gray-500">
         {Math.min((page - 1) * pageSize + 1, total)}–{Math.min(page * pageSize, total)} sur {total}
       </p>
       <div className="flex items-center gap-1">
         <button
           onClick={() => onChange(page - 1)}
           disabled={page === 1}
-          className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed"
+          className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 disabled:opacity-30 disabled:cursor-not-allowed"
         >
           <ChevronLeft size={15} />
         </button>
 
         {pages.map((p, i) =>
           p === '...' ? (
-            <span key={`d${i}`} className="px-1 text-gray-400 text-sm">…</span>
+            <span key={`d${i}`} className="px-1 text-gray-400 dark:text-gray-600 text-sm">…</span>
           ) : (
             <button
               key={p}
@@ -47,8 +47,8 @@ export default function Pagination({ page, total, pageSize, onChange }: Props) {
               className={clsx(
                 'w-7 h-7 rounded-lg text-sm font-medium transition-colors',
                 page === p
-                  ? 'bg-primary-950 text-white'
-                  : 'hover:bg-gray-100 text-gray-600'
+                  ? 'bg-primary-950 dark:bg-white text-white dark:text-gray-900'
+                  : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400'
               )}
             >
               {p}
@@ -59,7 +59,7 @@ export default function Pagination({ page, total, pageSize, onChange }: Props) {
         <button
           onClick={() => onChange(page + 1)}
           disabled={page === totalPages}
-          className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed"
+          className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 disabled:opacity-30 disabled:cursor-not-allowed"
         >
           <ChevronRight size={15} />
         </button>
