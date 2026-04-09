@@ -30,8 +30,16 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
 };
 
 export const requireAdmin = (req: AuthRequest, res: Response, next: NextFunction): void => {
-  if (req.user?.role !== 'Admin') {
+  if (req.user?.role !== 'Admin' && req.user?.role !== 'SuperAdmin') {
     res.status(403).json({ error: 'Accès réservé aux administrateurs' });
+    return;
+  }
+  next();
+};
+
+export const requireSuperAdmin = (req: AuthRequest, res: Response, next: NextFunction): void => {
+  if (req.user?.role !== 'SuperAdmin') {
+    res.status(403).json({ error: 'Accès réservé au super administrateur' });
     return;
   }
   next();

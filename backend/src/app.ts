@@ -7,6 +7,7 @@ import stockRoutes     from './modules/stock/stock.routes';
 import clientsRoutes   from './modules/clients/clients.routes';
 import commandesRoutes from './modules/commandes/commandes.routes';
 import facturesRoutes  from './modules/factures/factures.routes';
+import adminRoutes     from './modules/admin/admin.routes';
 
 dotenv.config();
 
@@ -33,6 +34,7 @@ app.use('/api/stock',     stockRoutes);
 app.use('/api/clients',   clientsRoutes);
 app.use('/api/commandes', commandesRoutes);
 app.use('/api/factures',  facturesRoutes);
+app.use('/api/admin',     adminRoutes);
 
 // Health check
 app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));

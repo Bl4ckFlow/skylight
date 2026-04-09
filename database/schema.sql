@@ -24,7 +24,7 @@ CREATE TABLE users (
     email         VARCHAR(255) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
     role          VARCHAR(20) NOT NULL DEFAULT 'Employé'
-                  CHECK (role IN ('Admin', 'Employé')),
+                  CHECK (role IN ('Admin', 'Employé', 'SuperAdmin')),
     created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
