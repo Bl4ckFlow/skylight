@@ -39,6 +39,11 @@ export const update = async (req: AuthRequest, res: Response): Promise<void> => 
   }
 };
 
+export const getStats = async (req: AuthRequest, res: Response): Promise<void> => {
+  const stats = await service.getClientStats(req.params.id, req.user!.company_id);
+  res.json(stats);
+};
+
 export const remove = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const deleted = await service.deleteClient(req.params.id, req.user!.company_id);

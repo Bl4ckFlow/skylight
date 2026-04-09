@@ -18,21 +18,34 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+.dark body {
+  background-color: #09090b;
+  color: #fafafa;
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
 @layer components {
   .btn-primary {
     @apply bg-primary-950 hover:bg-primary-800 text-white text-sm font-medium px-4 py-2 rounded-lg transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply dark:bg-white dark:text-primary-950 dark:hover:bg-gray-100;
   }
 
   .btn-secondary {
     @apply bg-white border border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-gray-900 text-sm font-medium px-4 py-2 rounded-lg transition-all duration-200 shadow-sm;
+    @apply dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 dark:text-gray-100;
   }
 
   .card {
     @apply bg-white rounded-xl border border-gray-200 shadow-sm p-5;
+    @apply dark:bg-gray-900 dark:border-gray-800;
   }
 
   .input {
     @apply w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-primary-950 focus:border-primary-950 transition-colors shadow-sm;
+    @apply dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100 dark:placeholder-gray-500 dark:focus:ring-gray-400 dark:focus:border-gray-400;
   }
 
   .badge-success {

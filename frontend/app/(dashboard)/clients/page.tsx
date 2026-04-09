@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Plus, Search, Edit2, Trash2, Phone, Mail, Building2, User } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, Phone, Mail, Building2, User, ChevronRight } from 'lucide-react';
+import Link from 'next/link';
 import api from '@/lib/api';
 import { Client } from '@/types';
 import { useToast } from '@/hooks/useToast';
@@ -137,8 +138,8 @@ export default function ClientsPage() {
           <div className="space-y-2">
             {paginated.map(c => (
               <div key={c.id} className="card flex items-center justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
+                <Link href={`/clients/${c.id}`} className="flex-1 min-w-0 hover:opacity-80 transition-opacity">
+                <div className="flex items-center gap-2">
                     {(c as any).client_type === 'Entreprise'
                       ? <Building2 size={13} className="text-blue-500 shrink-0" />
                       : <User size={13} className="text-gray-400 shrink-0" />
@@ -150,8 +151,8 @@ export default function ClientsPage() {
                     {c.email && <span className="flex items-center gap-1 text-xs text-gray-400"><Mail size={11} />{c.email}</span>}
                     {(c as any).nif && <span className="text-xs text-gray-400">NIF: {(c as any).nif}</span>}
                   </div>
-                </div>
-                <div className="flex gap-1">
+                </Link>
+                <div className="flex gap-1 items-center">
                   <button onClick={() => openEdit(c)} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500"><Edit2 size={15} /></button>
                   <button onClick={() => setDeleteId(c.id)} className="p-2 rounded-lg hover:bg-red-50 text-gray-500 hover:text-red-500"><Trash2 size={15} /></button>
                 </div>

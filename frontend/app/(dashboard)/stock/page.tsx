@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Plus, Search, Edit2, Trash2, AlertTriangle } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, AlertTriangle, History, ArrowUp, ArrowDown } from 'lucide-react';
 import api from '@/lib/api';
 import { Product } from '@/types';
 import clsx from 'clsx';
@@ -21,6 +21,10 @@ export default function StockPage() {
   const [deleteId, setDeleteId]   = useState<string | null>(null);
   const [page, setPage]           = useState(1);
   const [saving, setSaving]       = useState(false);
+  const [movProduct, setMovProduct] = useState<Product | null>(null);
+  const [movements, setMovements]   = useState<any[]>([]);
+  const [movLoading, setMovLoading] = useState(false);
+  const [movForm, setMovForm]       = useState({ delta: 1, reason: 'Entrée stock' });
   const { toasts, toast, dismiss } = useToast();
 
   const [form, setForm] = useState({
@@ -75,6 +79,27 @@ export default function StockPage() {
       toast('Une erreur est survenue', 'error');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const openMovements = async (p: Product) => {
+    setMovProduct(p);
+    setMovLoading(true);
+    setMovements([]);
+    const res = await api.get(`/stock/${p.id}/movements`);
+    setMovements(res.data);
+    setMovLoading(false);
+  };
+
+  const addMovement = async () => {
+    if (!movProduct) return;
+    try {
+      await api.post(`/stock/${movProduct.id}/movement`, movForm);
+      toast(`Stock mis à jour : ${movForm.delta > 0 ? '+' : ''}${movForm.delta}`);
+      load();
+      openMovements(movProduct);
+    } catch (err: any) {
+      toast(err?.response?.data?.error || 'Erreur', 'error');
     }
   };
 
@@ -138,6 +163,9 @@ export default function StockPage() {
                   <p className="text-gray-400">{Number(p.sell_price).toLocaleString('fr-DZ')} DA</p>
                 </div>
                 <div className="flex gap-1">
+                  <button onClick={() => openMovements(p)} className="p-2 rounded-lg hover:bg-gray-100 text-gray-400" title="Mouvements de stock">
+                    <History size={15} />
+                  </button>
                   <button onClick={() => openEdit(p)} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500">
                     <Edit2 size={15} />
                   </button>
@@ -195,6 +223,80 @@ export default function StockPage() {
               <button className="btn-primary flex-1" onClick={save} disabled={saving}>
                 {saving ? 'Enregistrement...' : 'Enregistrer'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mouvements de stock */}
+      {movProduct && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-end md:items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-lg p-6 space-y-4 my-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="font-bold text-lg text-gray-900 dark:text-white">Mouvements de stock</h2>
+                <p className="text-sm text-gray-400">{movProduct.name} · {movProduct.stock_quantity} unités actuellement</p>
+              </div>
+              <button onClick={() => setMovProduct(null)} className="text-gray-400 hover:text-gray-600 text-xl">×</button>
+            </div>
+
+            {/* Ajouter un mouvement */}
+            <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-4 space-y-3">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Ajouter un mouvement</p>
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <label className="text-xs text-gray-500 block mb-1">Quantité (négatif = sortie)</label>
+                  <input type="number" className="input" value={movForm.delta}
+                    onChange={e => setMovForm(f => ({ ...f, delta: Number(e.target.value) }))} />
+                </div>
+                <div className="flex-1">
+                  <label className="text-xs text-gray-500 block mb-1">Motif</label>
+                  <select className="input" value={movForm.reason}
+                    onChange={e => setMovForm(f => ({ ...f, reason: e.target.value }))}>
+                    <option>Entrée stock</option>
+                    <option>Retour client</option>
+                    <option>Correction inventaire</option>
+                    <option>Perte / Casse</option>
+                    <option>Sortie manuelle</option>
+                  </select>
+                </div>
+              </div>
+              <button className="btn-primary w-full" onClick={addMovement}>Enregistrer</button>
+            </div>
+
+            {/* Historique */}
+            <div>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Historique</p>
+              {movLoading ? (
+                <div className="flex justify-center py-4">
+                  <div className="w-4 h-4 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : movements.length === 0 ? (
+                <p className="text-sm text-gray-400">Aucun mouvement enregistré</p>
+              ) : (
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {movements.map((m: any) => (
+                    <div key={m.id} className="flex items-center justify-between text-sm border-b border-gray-100 dark:border-gray-800 pb-2">
+                      <div className="flex items-center gap-2">
+                        {m.delta > 0
+                          ? <ArrowUp size={13} className="text-green-500" />
+                          : <ArrowDown size={13} className="text-red-500" />
+                        }
+                        <div>
+                          <p className="text-gray-700 dark:text-gray-300 text-xs">{m.reason}</p>
+                          <p className="text-gray-400 text-xs">{m.user_email} · {new Date(m.created_at).toLocaleString('fr-FR')}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className={`font-semibold text-xs ${m.delta > 0 ? 'text-green-600' : 'text-red-500'}`}>
+                          {m.delta > 0 ? '+' : ''}{m.delta}
+                        </p>
+                        <p className="text-gray-400 text-xs">{m.qty_before} → {m.qty_after}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -73,6 +73,56 @@ export const updateProduct = async (id: string, company_id: string, data: Partia
   return result.rows[0] || null;
 };
 
+export const getStockMovements = async (product_id: string, company_id: string) => {
+  const result = await pool.query(`
+    SELECT sm.*, u.email AS user_email
+    FROM stock_movements sm
+    JOIN users u ON u.id = sm.user_id
+    WHERE sm.product_id = $1 AND sm.company_id = $2
+    ORDER BY sm.created_at DESC
+    LIMIT 50
+  `, [product_id, company_id]);
+  return result.rows;
+};
+
+export const addStockMovement = async (
+  product_id: string,
+  company_id: string,
+  user_id: string,
+  delta: number,
+  reason: string
+) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const prod = await client.query(
+      'SELECT stock_quantity FROM products WHERE id = $1 AND company_id = $2',
+      [product_id, company_id]
+    );
+    if (!prod.rows[0]) throw new Error('Produit introuvable');
+    const oldQty = prod.rows[0].stock_quantity;
+    const newQty = oldQty + delta;
+    if (newQty < 0) throw new Error('Stock insuffisant');
+
+    await client.query(
+      'UPDATE products SET stock_quantity = $1 WHERE id = $2 AND company_id = $3',
+      [newQty, product_id, company_id]
+    );
+    await client.query(`
+      INSERT INTO stock_movements (product_id, company_id, user_id, delta, qty_before, qty_after, reason)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+    `, [product_id, company_id, user_id, delta, oldQty, newQty, reason]);
+
+    await client.query('COMMIT');
+    return { qty_before: oldQty, qty_after: newQty, delta };
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+};
+
 export const deleteProduct = async (id: string, company_id: string) => {
   const result = await pool.query(
     'DELETE FROM products WHERE id = $1 AND company_id = $2 RETURNING id',

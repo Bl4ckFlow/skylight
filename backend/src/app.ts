@@ -8,7 +8,8 @@ import clientsRoutes   from './modules/clients/clients.routes';
 import commandesRoutes from './modules/commandes/commandes.routes';
 import facturesRoutes  from './modules/factures/factures.routes';
 import adminRoutes     from './modules/admin/admin.routes';
-import settingsRoutes  from './modules/settings/settings.routes';
+import settingsRoutes   from './modules/settings/settings.routes';
+import dashboardRoutes  from './modules/dashboard/dashboard.routes';
 
 dotenv.config();
 
@@ -36,7 +37,8 @@ app.use('/api/clients',   clientsRoutes);
 app.use('/api/commandes', commandesRoutes);
 app.use('/api/factures',  facturesRoutes);
 app.use('/api/admin',     adminRoutes);
-app.use('/api/settings',  settingsRoutes);
+app.use('/api/settings',   settingsRoutes);
+app.use('/api/dashboard',  dashboardRoutes);
 
 // Health check
 app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));

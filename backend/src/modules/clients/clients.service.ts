@@ -82,6 +82,22 @@ export const updateClient = async (id: string, company_id: string, data: Partial
   return result.rows[0] || null;
 };
 
+export const getClientStats = async (id: string, company_id: string) => {
+  const result = await pool.query(`
+    SELECT
+      COUNT(DISTINCT o.id) AS total_orders,
+      COALESCE(SUM(o.total_amount), 0) AS total_spent,
+      COUNT(DISTINCT CASE WHEN i.payment_status = 'Non Payé' THEN i.id END) AS unpaid_invoices,
+      COALESCE(SUM(CASE WHEN i.payment_status = 'Non Payé' THEN o.total_amount ELSE 0 END), 0) AS unpaid_amount,
+      MAX(o.created_at) AS last_order_at
+    FROM clients c
+    LEFT JOIN orders o ON o.client_id = c.id AND o.company_id = $2
+    LEFT JOIN invoices i ON i.order_id = o.id
+    WHERE c.id = $1 AND c.company_id = $2
+  `, [id, company_id]);
+  return result.rows[0];
+};
+
 export const deleteClient = async (id: string, company_id: string) => {
   const result = await pool.query(
     'DELETE FROM clients WHERE id = $1 AND company_id = $2 RETURNING id',
