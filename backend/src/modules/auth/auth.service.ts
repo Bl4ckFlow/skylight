@@ -26,6 +26,14 @@ export const loginUser = async (email: string, password: string) => {
   };
 };
 
+export const getUsers = async (company_id: string) => {
+  const result = await pool.query(
+    'SELECT id, email, role, created_at FROM users WHERE company_id = $1 ORDER BY created_at DESC',
+    [company_id]
+  );
+  return result.rows;
+};
+
 export const createUser = async (
   company_id: string,
   email: string,

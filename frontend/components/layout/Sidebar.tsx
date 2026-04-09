@@ -2,8 +2,9 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Package, Users, ShoppingCart, FileText, LogOut } from 'lucide-react';
+import { LayoutDashboard, Package, Users, ShoppingCart, FileText, LogOut, UserCog } from 'lucide-react';
 import clsx from 'clsx';
+import { useAuth } from '@/hooks/useAuth';
 
 const nav = [
   { href: '/',          label: 'Dashboard', icon: LayoutDashboard },
@@ -19,6 +20,7 @@ interface Props {
 
 export default function Sidebar({ onLogout }: Props) {
   const pathname = usePathname();
+  const { user } = useAuth();
 
   return (
     <aside className="hidden md:flex flex-col w-56 min-h-screen bg-white border-r border-gray-200 py-6 px-3">
@@ -49,6 +51,28 @@ export default function Sidebar({ onLogout }: Props) {
           </Link>
         ))}
       </nav>
+
+      {/* Admin: Utilisateurs */}
+      {user?.role === 'Admin' && (
+        <div className="border-t border-gray-100 pt-3 mt-3">
+          <Link
+            href="/utilisateurs"
+            className={clsx(
+              'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors duration-150',
+              pathname === '/utilisateurs'
+                ? 'bg-gray-100 text-primary-950 font-semibold'
+                : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900 font-medium'
+            )}
+          >
+            <UserCog
+              size={16}
+              className={pathname === '/utilisateurs' ? 'text-primary-950' : 'text-gray-400'}
+              strokeWidth={pathname === '/utilisateurs' ? 2.5 : 2}
+            />
+            Utilisateurs
+          </Link>
+        </div>
+      )}
 
       {/* Divider + Logout */}
       <div className="border-t border-gray-100 pt-3 mt-3">

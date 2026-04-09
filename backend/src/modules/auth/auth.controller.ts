@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { loginUser, createUser } from './auth.service';
+import { loginUser, createUser, getUsers } from './auth.service';
 import { AuthRequest } from '../../middleware/auth';
 
 export const login = async (req: Request, res: Response): Promise<void> => {
@@ -41,4 +41,13 @@ export const register = async (req: AuthRequest, res: Response): Promise<void> =
 
 export const me = async (req: AuthRequest, res: Response): Promise<void> => {
   res.json(req.user);
+};
+
+export const listUsers = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const users = await getUsers(req.user!.company_id);
+    res.json(users);
+  } catch {
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
 };
