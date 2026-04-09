@@ -38,6 +38,10 @@ export const getCompanyUsers = async (company_id: string) => {
   return result.rows;
 };
 
+export const deleteCompany = async (company_id: string) => {
+  await pool.query('DELETE FROM companies WHERE id = $1', [company_id]);
+};
+
 export const createCompanyWithAdmin = async (
   companyName: string,
   adminEmail: string,

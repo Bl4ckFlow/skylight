@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Plus, Building2, Users, ChevronDown, ChevronUp, Shield } from 'lucide-react';
+import { Plus, Building2, Users, ChevronDown, ChevronUp, Shield, Trash2 } from 'lucide-react';
 import api from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
@@ -65,6 +65,12 @@ export default function AdminPage() {
     if (user?.role === 'SuperAdmin') fetchCompanies();
   }, [user]);
 
+  const remove = async (id: string, name: string) => {
+    if (!confirm(`Supprimer l'entreprise "${name}" et toutes ses données ?`)) return;
+    await api.delete(`/admin/companies/${id}`);
+    setCompanies(cs => cs.filter(c => c.id !== id));
+  };
+
   const toggleCompany = async (id: string) => {
     if (expanded === id) { setExpanded(null); return; }
     setExpanded(id);
@@ -118,11 +124,11 @@ export default function AdminPage() {
         <div className="space-y-2">
           {companies.map(c => (
             <div key={c.id} className="card overflow-hidden">
-              <button
-                className="w-full flex items-center justify-between gap-4 text-left"
-                onClick={() => toggleCompany(c.id)}
-              >
-                <div className="flex items-center gap-3">
+              <div className="flex items-center justify-between gap-4">
+                <button
+                  className="flex-1 flex items-center gap-3 text-left"
+                  onClick={() => toggleCompany(c.id)}
+                >
                   <div className="p-2 rounded-lg bg-gray-100">
                     <Building2 size={16} className="text-gray-600" />
                   </div>
@@ -132,17 +138,23 @@ export default function AdminPage() {
                       Créée le {new Date(c.created_at).toLocaleDateString('fr-FR')}
                     </p>
                   </div>
-                </div>
-                <div className="flex items-center gap-3">
+                </button>
+                <div className="flex items-center gap-2">
                   <span className={`text-xs font-medium px-2 py-1 rounded-full ${PLAN_STYLES[c.subscription_plan]}`}>
                     {PLAN_LABELS[c.subscription_plan]}
                   </span>
                   <span className="flex items-center gap-1 text-xs text-gray-400">
                     <Users size={12} /> {c.user_count}
                   </span>
+                  <button
+                    onClick={() => remove(c.id, c.name)}
+                    className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
+                  >
+                    <Trash2 size={15} />
+                  </button>
                   {expanded === c.id ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
                 </div>
-              </button>
+              </div>
 
               {expanded === c.id && (
                 <div className="mt-4 pt-4 border-t border-gray-100">

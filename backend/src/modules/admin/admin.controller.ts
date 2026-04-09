@@ -1,6 +1,6 @@
 import { Response } from 'express';
 import { AuthRequest } from '../../middleware/auth';
-import { listCompanies, getCompanyUsers, createCompanyWithAdmin, getPlatformStats } from './admin.service';
+import { listCompanies, getCompanyUsers, createCompanyWithAdmin, getPlatformStats, deleteCompany } from './admin.service';
 
 export const getStats = async (_req: AuthRequest, res: Response): Promise<void> => {
   try {
@@ -24,6 +24,15 @@ export const getUsers = async (req: AuthRequest, res: Response): Promise<void> =
   try {
     const users = await getCompanyUsers(req.params.company_id);
     res.json(users);
+  } catch {
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+};
+
+export const removeCompany = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    await deleteCompany(req.params.company_id);
+    res.status(204).send();
   } catch {
     res.status(500).json({ error: 'Erreur serveur' });
   }
