@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { CheckCircle, XCircle, Loader } from 'lucide-react';
 
 type State = 'loading' | 'success' | 'error' | 'already';
 
-export default function LivraisonPage() {
+function LivraisonContent() {
   const params = useSearchParams();
   const [state, setState] = useState<State>('loading');
   const [confirmedAt, setConfirmedAt] = useState<string>('');
@@ -89,5 +89,17 @@ export default function LivraisonPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LivraisonPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="w-6 h-6 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
+      <LivraisonContent />
+    </Suspense>
   );
 }
