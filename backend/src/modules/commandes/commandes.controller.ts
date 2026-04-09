@@ -52,10 +52,25 @@ export const updateStatus = async (req: AuthRequest, res: Response): Promise<voi
       req.user!.company_id,
       status,
       req.user!.id,
-      req.user!.email
+      req.user!.email,
+      req.user!.role
     );
     if (!order) { res.status(404).json({ error: 'Commande introuvable' }); return; }
     res.json(order);
+  } catch (err: any) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
+export const confirmDelivery = async (req: AuthRequest, res: Response): Promise<void> => {
+  const { token } = req.query;
+  if (!token || typeof token !== 'string') {
+    res.status(400).json({ error: 'Token manquant' });
+    return;
+  }
+  try {
+    const result = await service.confirmDelivery(token);
+    res.json({ success: true, confirmed_at: result.client_confirmed_at });
   } catch (err: any) {
     res.status(400).json({ error: err.message });
   }

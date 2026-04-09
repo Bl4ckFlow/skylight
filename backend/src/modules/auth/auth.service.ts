@@ -34,12 +34,15 @@ export const getUsers = async (company_id: string) => {
   return result.rows;
 };
 
+const VALID_ROLES = ['Admin', 'Employé', 'Comptable', 'Commercial', 'Logistique', 'Livreur', 'SuperAdmin'];
+
 export const createUser = async (
   company_id: string,
   email: string,
   password: string,
-  role: 'Admin' | 'Employé'
+  role: string
 ) => {
+  if (!VALID_ROLES.includes(role)) throw new Error(`Rôle invalide : ${role}`);
   const hash = await bcrypt.hash(password, 10);
   const result = await pool.query(
     `INSERT INTO users (company_id, email, password_hash, role, must_change_password)

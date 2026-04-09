@@ -1,7 +1,7 @@
 export interface User {
   id: string;
   email: string;
-  role: 'Admin' | 'Employé' | 'SuperAdmin';
+  role: 'Admin' | 'Employé' | 'SuperAdmin' | 'Comptable' | 'Commercial' | 'Logistique' | 'Livreur';
   company_id: string;
   must_change_password: boolean;
 }
@@ -45,6 +45,9 @@ export interface Order {
   notes?: string;
   created_at: string;
   items?: OrderItem[];
+  client_confirmed?: boolean;
+  client_confirmed_at?: string;
+  bl_number?: string;
 }
 
 export interface Invoice {

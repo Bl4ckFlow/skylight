@@ -1,4 +1,5 @@
 import { pool } from '../../config/db';
+import { generateDeliveryToken, verifyDeliveryToken, sendDeliveryEmail } from '../../utils/mailer';
 
 const STATUS_ORDER: Record<string, number> = {
   'En attente': 0,
@@ -98,15 +99,30 @@ export const updateOrderStatus = async (
   company_id: string,
   newStatus: string,
   userId: string,
-  userEmail: string
+  userEmail: string,
+  userRole: string
 ) => {
+  // Livreur can only set status to "Livrée"
+  if (userRole === 'Livreur' && newStatus !== 'Livrée') {
+    throw new Error('Les livreurs ne peuvent marquer que le statut "Livrée"');
+  }
+
   const current = await pool.query(
-    'SELECT status FROM orders WHERE id = $1 AND company_id = $2',
+    `SELECT o.status, c.email AS client_email, c.full_name AS client_name,
+            co.name AS company_name,
+            json_agg(json_build_object('product_name', p.name, 'quantity', oi.quantity, 'unit_price', oi.unit_price)) AS items
+     FROM orders o
+     JOIN clients c ON c.id = o.client_id
+     JOIN companies co ON co.id = o.company_id
+     LEFT JOIN order_items oi ON oi.order_id = o.id
+     LEFT JOIN products p ON p.id = oi.product_id
+     WHERE o.id = $1 AND o.company_id = $2
+     GROUP BY o.id, c.id, co.id`,
     [id, company_id]
   );
   if (!current.rows[0]) return null;
 
-  const currentStatus = current.rows[0].status;
+  const { status: currentStatus, client_email, client_name, company_name, items } = current.rows[0];
 
   if (STATUS_ORDER[newStatus] <= STATUS_ORDER[currentStatus]) {
     throw new Error(`Impossible de revenir à "${newStatus}" depuis "${currentStatus}"`);
@@ -123,6 +139,50 @@ export const updateOrderStatus = async (
     [id, currentStatus, newStatus, userId, userEmail]
   );
 
+  // Send delivery confirmation email when status becomes "Livrée"
+  if (newStatus === 'Livrée' && client_email) {
+    const token = generateDeliveryToken(id, company_id);
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const confirmUrl = `${frontendUrl}/livraison?token=${token}`;
+
+    const order = result.rows[0];
+    sendDeliveryEmail({
+      to: client_email,
+      clientName: client_name,
+      companyName: company_name,
+      orderDate: new Date(order.created_at).toLocaleDateString('fr-FR'),
+      totalAmount: Number(order.total_amount),
+      items: items || [],
+      confirmUrl,
+    }).catch(err => console.error('[mailer] delivery email failed:', err));
+  }
+
+  return result.rows[0];
+};
+
+export const confirmDelivery = async (token: string) => {
+  const payload = verifyDeliveryToken(token);
+  if (!payload) throw new Error('Lien invalide ou expiré');
+
+  // Check if already confirmed
+  const existing = await pool.query(
+    'SELECT client_confirmed, client_confirmed_at FROM orders WHERE id = $1 AND company_id = $2',
+    [payload.order_id, payload.company_id]
+  );
+  if (!existing.rows[0]) throw new Error('Commande introuvable');
+  if (existing.rows[0].client_confirmed) {
+    throw new Error('déjà confirmé');
+  }
+
+  const result = await pool.query(
+    `UPDATE orders
+     SET client_confirmed = true, client_confirmed_at = NOW()
+     WHERE id = $1 AND company_id = $2 AND status = 'Livrée'
+     RETURNING id, client_confirmed_at`,
+    [payload.order_id, payload.company_id]
+  );
+
+  if (!result.rows[0]) throw new Error('Commande non encore livrée');
   return result.rows[0];
 };
 

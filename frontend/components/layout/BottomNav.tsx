@@ -6,23 +6,27 @@ import { LayoutDashboard, Package, Users, ShoppingCart, FileText, Shield } from 
 import clsx from 'clsx';
 import { useAuth } from '@/hooks/useAuth';
 
-const companyNav = [
-  { href: '/',          label: 'Home',      icon: LayoutDashboard },
-  { href: '/stock',     label: 'Stock',     icon: Package },
-  { href: '/clients',   label: 'Clients',   icon: Users },
-  { href: '/commandes', label: 'Commandes', icon: ShoppingCart },
-  { href: '/factures',  label: 'Factures',  icon: FileText },
+const ALL_NAV = [
+  { href: '/',          label: 'Home',      icon: LayoutDashboard, roles: ['Admin', 'Comptable', 'Commercial', 'Logistique', 'Livreur', 'Employé'] },
+  { href: '/stock',     label: 'Stock',     icon: Package,         roles: ['Admin', 'Logistique'] },
+  { href: '/clients',   label: 'Clients',   icon: Users,           roles: ['Admin', 'Commercial'] },
+  { href: '/commandes', label: 'Commandes', icon: ShoppingCart,    roles: ['Admin', 'Commercial', 'Livreur'] },
+  { href: '/factures',  label: 'Factures',  icon: FileText,        roles: ['Admin', 'Comptable'] },
 ];
 
 const superAdminNav = [
-  { href: '/',      label: 'Home',       icon: LayoutDashboard },
+  { href: '/',      label: 'Home',        icon: LayoutDashboard },
   { href: '/admin', label: 'Entreprises', icon: Shield },
 ];
 
 export default function BottomNav() {
   const pathname = usePathname();
   const { user } = useAuth();
-  const nav = user?.role === 'SuperAdmin' ? superAdminNav : companyNav;
+
+  const role = user?.role || '';
+  const nav = role === 'SuperAdmin'
+    ? superAdminNav
+    : ALL_NAV.filter(item => item.roles.includes(role));
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">

@@ -1,10 +1,16 @@
 import { Router } from 'express';
 import { authenticate } from '../../middleware/auth';
-import { list, getOne, getLogs, create, updateStatus, remove, downloadBL } from './commandes.controller';
+import { canCommandes } from '../../middleware/permissions';
+import { list, getOne, getLogs, create, updateStatus, remove, downloadBL, confirmDelivery } from './commandes.controller';
 
 const router = Router();
 
+// Public: client delivery confirmation (no auth needed)
+router.get('/confirm-delivery', confirmDelivery);
+
+// All other routes require auth + commandes permission
 router.use(authenticate);
+router.use(canCommandes);
 
 router.get('/',               list);
 router.get('/:id',            getOne);

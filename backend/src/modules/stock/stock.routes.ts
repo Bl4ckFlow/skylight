@@ -1,10 +1,12 @@
 import { Router } from 'express';
 import { authenticate } from '../../middleware/auth';
+import { canStock } from '../../middleware/permissions';
 import { list, lowStock, getOne, create, update, remove } from './stock.controller';
 
 const router = Router();
 
 router.use(authenticate);
+router.use(canStock);
 
 router.get('/',         list);
 router.get('/low',      lowStock);

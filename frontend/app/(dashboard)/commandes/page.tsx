@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Plus, ArrowRight, Clock, History, Truck, Search } from 'lucide-react';
+import { Plus, ArrowRight, Clock, History, Truck, Search, BadgeCheck } from 'lucide-react';
 import api from '@/lib/api';
 import { Order, Client, Product } from '@/types';
 import clsx from 'clsx';
@@ -191,6 +191,16 @@ export default function CommandesPage() {
                   <span className={clsx('px-2.5 py-1 rounded-full text-xs font-medium', STATUS_STYLES[o.status])}>
                     {o.status}
                   </span>
+
+                  {/* Badge confirmation client */}
+                  {o.status === 'Livrée' && o.client_confirmed && (
+                    <span title="Réception confirmée par le client" className="flex items-center gap-1 text-xs text-green-600 font-medium">
+                      <BadgeCheck size={14} /> Confirmé
+                    </span>
+                  )}
+                  {o.status === 'Livrée' && !o.client_confirmed && (
+                    <span className="text-xs text-gray-400">En attente client</span>
+                  )}
 
                   {/* Boutons de transition */}
                   {NEXT_STATUS[o.status].map(next => (
