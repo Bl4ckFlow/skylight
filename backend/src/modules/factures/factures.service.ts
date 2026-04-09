@@ -23,20 +23,30 @@ export const getInvoiceById = async (id: string, company_id: string) => {
   const result = await pool.query(
     `SELECT i.*, o.total_amount, o.status AS order_status, o.notes,
        c.full_name AS client_name, c.phone AS client_phone, c.email AS client_email,
-       c.address AS client_address,
+       c.address AS client_address, c.client_type,
+       c.nif AS client_nif, c.nis AS client_nis, c.rc AS client_rc, c.ai AS client_ai,
+       co.name AS company_name, co.activity AS company_activity,
+       co.address AS company_address, co.capital_social,
+       co.phone AS company_phone, co.fax AS company_fax,
+       co.email AS company_email, co.website AS company_website,
+       co.nif AS company_nif, co.nis AS company_nis,
+       co.tin AS company_tin, co.rc AS company_rc,
+       co.bank_name, co.bank_rib, co.bank_name2, co.bank_rib2,
+       co.tva_rate,
        json_agg(json_build_object(
          'product_name', p.name,
          'quantity', oi.quantity,
          'unit_price', oi.unit_price,
          'subtotal', (oi.quantity * oi.unit_price)
-       )) AS items
+       ) ORDER BY p.name) AS items
      FROM invoices i
      JOIN orders o ON o.id = i.order_id
      JOIN clients c ON c.id = o.client_id
+     JOIN companies co ON co.id = i.company_id
      LEFT JOIN order_items oi ON oi.order_id = o.id
      LEFT JOIN products p ON p.id = oi.product_id
      WHERE i.id = $1 AND i.company_id = $2
-     GROUP BY i.id, o.id, c.id`,
+     GROUP BY i.id, o.id, c.id, co.id`,
     [id, company_id]
   );
   return result.rows[0] || null;
@@ -60,11 +70,22 @@ export const createInvoice = async (company_id: string, order_id: string) => {
   );
   if (!order.rows[0]) throw new Error('Commande introuvable');
 
+  // Generate sequential invoice number
+  const company = await pool.query(
+    `UPDATE companies SET invoice_counter = COALESCE(invoice_counter, 0) + 1
+     WHERE id = $1 RETURNING invoice_counter, invoice_prefix`,
+    [company_id]
+  );
+  const { invoice_counter, invoice_prefix } = company.rows[0];
+  const now = new Date();
+  const yymm = `${String(now.getFullYear()).slice(2)}${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const invoice_number = `${invoice_prefix || 'F'}${yymm}${String(invoice_counter).padStart(4, '0')}`;
+
   const result = await pool.query(
-    `INSERT INTO invoices (company_id, order_id)
-     VALUES ($1, $2)
+    `INSERT INTO invoices (company_id, order_id, invoice_number)
+     VALUES ($1, $2, $3)
      RETURNING *`,
-    [company_id, order_id]
+    [company_id, order_id, invoice_number]
   );
   return result.rows[0];
 };

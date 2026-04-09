@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Package, Users, ShoppingCart, FileText, LogOut, UserCog, Shield } from 'lucide-react';
+import { LayoutDashboard, Package, Users, ShoppingCart, FileText, LogOut, UserCog, Shield, Settings } from 'lucide-react';
 import clsx from 'clsx';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -87,6 +87,22 @@ export default function Sidebar({ onLogout }: Props) {
               strokeWidth={pathname === '/admin' ? 2.5 : 2}
             />
             Entreprises
+          </Link>
+        )}
+
+        {/* Paramètres */}
+        {!isSuperAdmin && (
+          <Link
+            href="/parametres"
+            className={clsx(
+              'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors duration-150',
+              pathname === '/parametres'
+                ? 'bg-gray-100 text-primary-950 font-semibold'
+                : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900 font-medium'
+            )}
+          >
+            <Settings size={16} className={pathname === '/parametres' ? 'text-primary-950' : 'text-gray-400'} strokeWidth={pathname === '/parametres' ? 2.5 : 2} />
+            Paramètres
           </Link>
         )}
 
