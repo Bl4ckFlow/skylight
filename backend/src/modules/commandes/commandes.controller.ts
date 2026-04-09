@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { AuthRequest } from '../../middleware/auth';
 import * as service from './commandes.service';
+import { generateBLPDF } from '../../utils/bl-pdf';
 
 const VALID_STATUSES = ['En attente', 'En cours', 'Livrée'];
 
@@ -58,6 +59,12 @@ export const updateStatus = async (req: AuthRequest, res: Response): Promise<voi
   } catch (err: any) {
     res.status(400).json({ error: err.message });
   }
+};
+
+export const downloadBL = async (req: AuthRequest, res: Response): Promise<void> => {
+  const order = await service.getOrderForBL(req.params.id, req.user!.company_id);
+  if (!order) { res.status(404).json({ error: 'Commande introuvable' }); return; }
+  generateBLPDF(order, res);
 };
 
 export const remove = async (req: AuthRequest, res: Response): Promise<void> => {

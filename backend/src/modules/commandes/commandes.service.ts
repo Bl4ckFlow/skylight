@@ -126,6 +126,58 @@ export const updateOrderStatus = async (
   return result.rows[0];
 };
 
+export const getOrderForBL = async (id: string, company_id: string) => {
+  const result = await pool.query(
+    `SELECT o.*, o.bl_number,
+       c.full_name AS client_name, c.phone AS client_phone,
+       c.address AS client_address, c.client_type,
+       c.nif AS client_nif, c.nis AS client_nis, c.rc AS client_rc, c.ai AS client_ai,
+       co.name AS company_name, co.activity AS company_activity,
+       co.address AS company_address, co.capital_social,
+       co.phone AS company_phone, co.fax AS company_fax,
+       co.email AS company_email, co.website AS company_website,
+       co.nif AS company_nif, co.nis AS company_nis,
+       co.tin AS company_tin, co.rc AS company_rc,
+       co.bank_name, co.bank_rib, co.bank_name2, co.bank_rib2,
+       json_agg(json_build_object(
+         'product_name', p.name,
+         'quantity', oi.quantity,
+         'unit_price', oi.unit_price,
+         'subtotal', (oi.quantity * oi.unit_price)
+       ) ORDER BY p.name) AS items
+     FROM orders o
+     JOIN clients c ON c.id = o.client_id
+     JOIN companies co ON co.id = o.company_id
+     LEFT JOIN order_items oi ON oi.order_id = o.id
+     LEFT JOIN products p ON p.id = oi.product_id
+     WHERE o.id = $1 AND o.company_id = $2
+     GROUP BY o.id, c.id, co.id`,
+    [id, company_id]
+  );
+  if (!result.rows[0]) return null;
+
+  // Generate BL number if not yet assigned
+  const order = result.rows[0];
+  if (!order.bl_number) {
+    const company = await pool.query(
+      `UPDATE companies SET bl_counter = COALESCE(bl_counter, 0) + 1
+       WHERE id = $1 RETURNING bl_counter`,
+      [company_id]
+    );
+    const { bl_counter } = company.rows[0];
+    const now = new Date();
+    const yymm = `${String(now.getFullYear()).slice(2)}${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const bl_number = `BL${yymm}${String(bl_counter).padStart(4, '0')}`;
+    await pool.query(
+      'UPDATE orders SET bl_number = $1 WHERE id = $2',
+      [bl_number, id]
+    );
+    order.bl_number = bl_number;
+  }
+
+  return order;
+};
+
 export const deleteOrder = async (id: string, company_id: string) => {
   const result = await pool.query(
     'DELETE FROM orders WHERE id = $1 AND company_id = $2 RETURNING id',

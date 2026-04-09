@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Plus, ArrowRight, Clock, History } from 'lucide-react';
+import { Plus, ArrowRight, Clock, History, Truck, Search } from 'lucide-react';
 import api from '@/lib/api';
 import { Order, Client, Product } from '@/types';
 import clsx from 'clsx';
@@ -33,6 +33,7 @@ export default function CommandesPage() {
   const [clients, setClients]       = useState<Client[]>([]);
   const [products, setProducts]     = useState<Product[]>([]);
   const [filter, setFilter]         = useState('');
+  const [search, setSearch]         = useState('');
   const [loading, setLoading]       = useState(true);
   const [showModal, setShowModal]   = useState(false);
 
@@ -98,6 +99,15 @@ export default function CommandesPage() {
     fetchOrders();
   };
 
+  const downloadBL = (id: string) => {
+    const token = localStorage.getItem('token');
+    window.open(`${process.env.NEXT_PUBLIC_API_URL}/commandes/${id}/bl?token=${token}`, '_blank');
+  };
+
+  const filtered = orders.filter(o =>
+    !search || o.client_name?.toLowerCase().includes(search.toLowerCase())
+  );
+
   const openLogs = async (order: Order) => {
     setLogOrder(order);
     setLogsLoading(true);
@@ -111,23 +121,35 @@ export default function CommandesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Commandes</h1>
-          <p className="text-sm text-gray-500">{orders.length} commande(s)</p>
+          <p className="text-sm text-gray-500">{filtered.length} commande(s)</p>
         </div>
         <button className="btn-primary flex items-center gap-2" onClick={() => setShowModal(true)}>
           <Plus size={16} /> Nouvelle
         </button>
       </div>
 
-      {/* Filtres */}
-      <div className="flex gap-2 flex-wrap">
-        {['', ...STATUSES].map(s => (
-          <button key={s} onClick={() => setFilter(s)}
-            className={clsx('px-3 py-1.5 rounded-full text-sm font-medium transition-colors',
-              filter === s ? 'bg-primary-950 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
-            )}>
-            {s || 'Toutes'}
-          </button>
-        ))}
+      {/* Recherche + Filtres */}
+      <div className="flex flex-col gap-2">
+        <div className="relative">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Rechercher un client..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="input pl-8 text-sm"
+          />
+        </div>
+        <div className="flex gap-2 flex-wrap">
+          {['', ...STATUSES].map(s => (
+            <button key={s} onClick={() => setFilter(s)}
+              className={clsx('px-3 py-1.5 rounded-full text-sm font-medium transition-colors',
+                filter === s ? 'bg-primary-950 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+              )}>
+              {s || 'Toutes'}
+            </button>
+          ))}
+        </div>
       </div>
 
       {loading ? (
@@ -136,7 +158,7 @@ export default function CommandesPage() {
         </div>
       ) : (
         <div className="space-y-2">
-          {orders.map(o => (
+          {filtered.map(o => (
             <div key={o.id} className="card">
               <div className="flex items-center justify-between gap-4">
                 {/* Infos cliquables → logs */}
@@ -162,6 +184,15 @@ export default function CommandesPage() {
                     </button>
                   ))}
 
+                  {/* BL */}
+                  <button
+                    onClick={() => downloadBL(o.id)}
+                    title="Télécharger le bon de livraison"
+                    className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-700"
+                  >
+                    <Truck size={15} />
+                  </button>
+
                   {/* Logs */}
                   <button onClick={() => openLogs(o)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
                     <History size={15} />
@@ -170,7 +201,7 @@ export default function CommandesPage() {
               </div>
             </div>
           ))}
-          {orders.length === 0 && <p className="text-center text-gray-400 py-12">Aucune commande</p>}
+          {filtered.length === 0 && <p className="text-center text-gray-400 py-12">Aucune commande</p>}
         </div>
       )}
 
