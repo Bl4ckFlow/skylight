@@ -44,3 +44,11 @@ export const remove = asyncHandler(async (req: AuthRequest, res: Response) => {
     res.status(409).json({ error: 'Impossible de supprimer un client avec des commandes actives' });
   }
 });
+
+export const exportXlsx = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const buffer = await service.exportClientsXlsx(req.user!.company_id);
+  const now = new Date().toISOString().slice(0, 10);
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', `attachment; filename="clients-${now}.xlsx"`);
+  res.send(buffer);
+});

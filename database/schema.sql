@@ -47,6 +47,7 @@ CREATE TABLE users (
     role                 VARCHAR(20) NOT NULL DEFAULT 'Employé'
                          CHECK (role IN ('Admin','Employé','SuperAdmin','Comptable','Commercial','Logistique','Livreur')),
     must_change_password BOOLEAN NOT NULL DEFAULT true,
+    token_version        INTEGER NOT NULL DEFAULT 0,
     created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

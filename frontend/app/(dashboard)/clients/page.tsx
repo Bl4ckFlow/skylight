@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Plus, Search, Edit2, Trash2, Phone, Mail, Building2, User, ChevronRight } from 'lucide-react';
+import { Plus, Download, Search, Edit2, Trash2, Phone, Mail, Building2, User, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import api from '@/lib/api';
 import { Client } from '@/types';
@@ -119,9 +119,25 @@ export default function ClientsPage() {
           <h1 className="text-2xl font-bold text-gray-900">Clients</h1>
           <p className="text-sm text-gray-500">{filtered.length} client(s)</p>
         </div>
-        <button className="btn-primary flex items-center gap-2" onClick={openCreate}>
-          <Plus size={16} /> Ajouter
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            className="btn-secondary flex items-center gap-2"
+            onClick={async () => {
+              const res = await api.get('/clients/export.xlsx', { responseType: 'blob' });
+              const url = URL.createObjectURL(res.data);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `clients-${new Date().toISOString().slice(0, 10)}.xlsx`;
+              a.click();
+              URL.revokeObjectURL(url);
+            }}
+          >
+            <Download size={16} /> Export
+          </button>
+          <button className="btn-primary flex items-center gap-2" onClick={openCreate}>
+            <Plus size={16} /> Ajouter
+          </button>
+        </div>
       </div>
 
       <div className="relative">

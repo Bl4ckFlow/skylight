@@ -93,9 +93,25 @@ export default function FacturesPage() {
           <h1 className="text-2xl font-bold text-gray-900">Factures</h1>
           <p className="text-sm text-gray-500">{filtered.length} facture(s)</p>
         </div>
-        <button className="btn-primary flex items-center gap-2" onClick={() => setShowModal(true)}>
-          <Plus size={16} /> Créer
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            className="btn-secondary flex items-center gap-2"
+            onClick={async () => {
+              const res = await api.get('/factures/export.xlsx', { responseType: 'blob' });
+              const url = URL.createObjectURL(res.data);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `factures-${new Date().toISOString().slice(0, 10)}.xlsx`;
+              a.click();
+              URL.revokeObjectURL(url);
+            }}
+          >
+            <Download size={16} /> Export
+          </button>
+          <button className="btn-primary flex items-center gap-2" onClick={() => setShowModal(true)}>
+            <Plus size={16} /> Créer
+          </button>
+        </div>
       </div>
 
       {/* Recherche + Filtres */}

@@ -1,4 +1,5 @@
 import { pool } from '../../config/db';
+import ExcelJS from 'exceljs';
 
 export const getInvoices = async (company_id: string, payment_status?: string) => {
   const query = payment_status
@@ -119,6 +120,47 @@ export const updatePaymentStatus = async (
   );
 
   return result.rows[0];
+};
+
+export const exportInvoicesXlsx = async (company_id: string): Promise<ArrayBuffer> => {
+  const result = await pool.query(
+    `SELECT i.invoice_number, i.payment_status, i.created_at,
+            c.full_name AS client_name,
+            o.total_amount, o.created_at AS order_date
+     FROM invoices i
+     JOIN orders o ON o.id = i.order_id
+     JOIN clients c ON c.id = o.client_id
+     WHERE i.company_id = $1
+     ORDER BY i.created_at DESC`,
+    [company_id]
+  );
+
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet('Factures');
+
+  ws.columns = [
+    { header: 'N° Facture',    key: 'invoice_number', width: 16 },
+    { header: 'Client',        key: 'client_name',    width: 28 },
+    { header: 'Montant (DA)',  key: 'total_amount',   width: 16 },
+    { header: 'Statut',       key: 'payment_status',  width: 14 },
+    { header: 'Date commande', key: 'order_date',     width: 18 },
+    { header: 'Date facture',  key: 'created_at',     width: 18 },
+  ];
+
+  ws.getRow(1).font = { bold: true };
+
+  for (const row of result.rows) {
+    ws.addRow({
+      invoice_number: row.invoice_number,
+      client_name:    row.client_name,
+      total_amount:   Number(row.total_amount),
+      payment_status: row.payment_status,
+      order_date:     new Date(row.order_date).toLocaleDateString('fr-FR'),
+      created_at:     new Date(row.created_at).toLocaleDateString('fr-FR'),
+    });
+  }
+
+  return wb.xlsx.writeBuffer();
 };
 
 export const updatePdfUrl = async (id: string, company_id: string, pdf_url: string) => {

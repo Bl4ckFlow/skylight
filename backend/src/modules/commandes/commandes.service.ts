@@ -139,6 +139,29 @@ export const updateOrderStatus = async (
     [id, currentStatus, newStatus, userId, userEmail]
   );
 
+  // Auto-create draft invoice when order is delivered (idempotent)
+  if (newStatus === 'Livrée') {
+    const existing = await pool.query(
+      'SELECT id FROM invoices WHERE order_id = $1',
+      [id]
+    );
+    if (!existing.rows[0]) {
+      const company = await pool.query(
+        `UPDATE companies SET invoice_counter = COALESCE(invoice_counter, 0) + 1
+         WHERE id = $1 RETURNING invoice_counter, invoice_prefix`,
+        [company_id]
+      );
+      const { invoice_counter, invoice_prefix } = company.rows[0];
+      const now = new Date();
+      const yymm = `${String(now.getFullYear()).slice(2)}${String(now.getMonth() + 1).padStart(2, '0')}`;
+      const invoice_number = `${invoice_prefix || 'F'}${yymm}${String(invoice_counter).padStart(4, '0')}`;
+      await pool.query(
+        `INSERT INTO invoices (company_id, order_id, invoice_number) VALUES ($1, $2, $3)`,
+        [company_id, id, invoice_number]
+      );
+    }
+  }
+
   // Send delivery confirmation email when status becomes "Livrée"
   if (newStatus === 'Livrée' && client_email) {
     const token = generateDeliveryToken(id, company_id);

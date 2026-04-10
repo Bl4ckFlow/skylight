@@ -1,4 +1,5 @@
 import { pool } from '../../config/db';
+import ExcelJS from 'exceljs';
 
 type ClientData = {
   full_name: string;
@@ -96,6 +97,60 @@ export const getClientStats = async (id: string, company_id: string) => {
     WHERE c.id = $1 AND c.company_id = $2
   `, [id, company_id]);
   return result.rows[0];
+};
+
+export const exportClientsXlsx = async (company_id: string): Promise<ArrayBuffer> => {
+  const result = await pool.query(
+    `SELECT c.full_name, c.phone, c.email, c.address, c.client_type,
+            c.nif, c.nis, c.rc, c.ai, c.created_at,
+            COUNT(DISTINCT o.id) AS total_orders,
+            COALESCE(SUM(o.total_amount), 0) AS total_spent
+     FROM clients c
+     LEFT JOIN orders o ON o.client_id = c.id AND o.company_id = c.company_id
+     WHERE c.company_id = $1
+     GROUP BY c.id
+     ORDER BY c.full_name ASC`,
+    [company_id]
+  );
+
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet('Clients');
+
+  ws.columns = [
+    { header: 'Nom',            key: 'full_name',    width: 28 },
+    { header: 'Type',           key: 'client_type',  width: 14 },
+    { header: 'Téléphone',      key: 'phone',        width: 16 },
+    { header: 'Email',          key: 'email',        width: 26 },
+    { header: 'Adresse',        key: 'address',      width: 30 },
+    { header: 'NIF',            key: 'nif',          width: 14 },
+    { header: 'NIS',            key: 'nis',          width: 14 },
+    { header: 'RC',             key: 'rc',           width: 14 },
+    { header: 'AI',             key: 'ai',           width: 14 },
+    { header: 'Commandes',      key: 'total_orders', width: 12 },
+    { header: 'Total (DA)',      key: 'total_spent',  width: 16 },
+    { header: 'Créé le',        key: 'created_at',   width: 14 },
+  ];
+
+  ws.getRow(1).font = { bold: true };
+
+  for (const row of result.rows) {
+    ws.addRow({
+      full_name:    row.full_name,
+      client_type:  row.client_type,
+      phone:        row.phone ?? '',
+      email:        row.email ?? '',
+      address:      row.address ?? '',
+      nif:          row.nif ?? '',
+      nis:          row.nis ?? '',
+      rc:           row.rc ?? '',
+      ai:           row.ai ?? '',
+      total_orders: Number(row.total_orders),
+      total_spent:  Number(row.total_spent),
+      created_at:   new Date(row.created_at).toLocaleDateString('fr-FR'),
+    });
+  }
+
+  return wb.xlsx.writeBuffer();
 };
 
 export const deleteClient = async (id: string, company_id: string) => {

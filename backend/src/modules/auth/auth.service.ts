@@ -4,7 +4,7 @@ import { pool } from '../../config/db';
 
 export const loginUser = async (email: string, password: string) => {
   const result = await pool.query(
-    'SELECT id, company_id, email, password_hash, role, must_change_password FROM users WHERE email = $1',
+    'SELECT id, company_id, email, password_hash, role, must_change_password, token_version FROM users WHERE email = $1',
     [email]
   );
 
@@ -15,7 +15,7 @@ export const loginUser = async (email: string, password: string) => {
   if (!valid) throw new Error('Identifiants incorrects');
 
   const token = jwt.sign(
-    { id: user.id, company_id: user.company_id, role: user.role, email: user.email, must_change_password: user.must_change_password },
+    { id: user.id, company_id: user.company_id, role: user.role, email: user.email, must_change_password: user.must_change_password, token_version: user.token_version },
     process.env.JWT_SECRET as string,
     { expiresIn: 60 * 60 * 24 * 7 }
   );
@@ -51,7 +51,7 @@ export const createUser = async (company_id: string, email: string, password: st
 export const updateUserRole = async (user_id: string, company_id: string, role: string) => {
   if (!VALID_ROLES.includes(role)) throw new Error(`Rôle invalide : ${role}`);
   const result = await pool.query(
-    `UPDATE users SET role = $1
+    `UPDATE users SET role = $1, token_version = token_version + 1
      WHERE id = $2 AND company_id = $3
      RETURNING id, email, role, created_at`,
     [role, user_id, company_id]
@@ -70,12 +70,12 @@ export const deleteUser = async (user_id: string, company_id: string) => {
 export const changePassword = async (user_id: string, newPassword: string) => {
   const hash = await bcrypt.hash(newPassword, 10);
   const result = await pool.query(
-    'UPDATE users SET password_hash = $1, must_change_password = false WHERE id = $2 RETURNING id, company_id, email, role',
+    'UPDATE users SET password_hash = $1, must_change_password = false WHERE id = $2 RETURNING id, company_id, email, role, token_version',
     [hash, user_id]
   );
   const user = result.rows[0];
   const token = jwt.sign(
-    { id: user.id, company_id: user.company_id, role: user.role, email: user.email, must_change_password: false },
+    { id: user.id, company_id: user.company_id, role: user.role, email: user.email, must_change_password: false, token_version: user.token_version },
     process.env.JWT_SECRET as string,
     { expiresIn: 60 * 60 * 24 * 7 }
   );

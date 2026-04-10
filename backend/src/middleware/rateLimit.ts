@@ -12,7 +12,8 @@ export const apiLimiter = rateLimit({
       req.path.includes('/health') ||
       req.path.includes('/auth/login') ||
       req.path.endsWith('/pdf') ||
-      req.path.endsWith('/bl')
+      req.path.endsWith('/bl') ||
+      req.path.endsWith('/export.xlsx')
     );
   },
 });

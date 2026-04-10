@@ -51,3 +51,11 @@ export const downloadPDF = asyncHandler(async (req: AuthRequest, res: Response) 
   if (!invoice) { res.status(404).json({ error: 'Facture introuvable' }); return; }
   generateInvoicePDF(invoice, res);
 });
+
+export const exportXlsx = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const buffer = await service.exportInvoicesXlsx(req.user!.company_id);
+  const now = new Date().toISOString().slice(0, 10);
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', `attachment; filename="factures-${now}.xlsx"`);
+  res.send(buffer);
+});
