@@ -6,7 +6,9 @@ export function errorHandler(
   res: Response,
   _next: NextFunction
 ): void {
-  console.error(`[${req.method}] ${req.path}`, err);
   const status = err.status ?? err.statusCode ?? 500;
+  if (status >= 500) {
+    console.error(`[${req.method}] ${req.path} — ${err.message}`, err.stack);
+  }
   res.status(status).json({ error: err.message || 'Erreur interne' });
 }

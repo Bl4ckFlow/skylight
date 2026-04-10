@@ -1,88 +1,62 @@
 import { Response } from 'express';
 import { AuthRequest } from '../../middleware/auth';
+import { asyncHandler } from '../../middleware/asyncHandler';
 import * as service from './commandes.service';
 import { generateBLPDF } from '../../utils/bl-pdf';
 
-const VALID_STATUSES = ['En attente', 'En cours', 'Livrée'];
-
-export const list = async (req: AuthRequest, res: Response): Promise<void> => {
+export const list = asyncHandler(async (req: AuthRequest, res: Response) => {
   const { status } = req.query;
   const orders = await service.getOrders(req.user!.company_id, status as string | undefined);
   res.json(orders);
-};
+});
 
-export const getOne = async (req: AuthRequest, res: Response): Promise<void> => {
+export const getOne = asyncHandler(async (req: AuthRequest, res: Response) => {
   const order = await service.getOrderById(req.params.id, req.user!.company_id);
   if (!order) { res.status(404).json({ error: 'Commande introuvable' }); return; }
   res.json(order);
-};
+});
 
-export const getLogs = async (req: AuthRequest, res: Response): Promise<void> => {
+export const getLogs = asyncHandler(async (req: AuthRequest, res: Response) => {
   const logs = await service.getOrderLogs(req.params.id, req.user!.company_id);
   res.json(logs);
-};
+});
 
-export const create = async (req: AuthRequest, res: Response): Promise<void> => {
+export const create = asyncHandler(async (req: AuthRequest, res: Response) => {
   const { client_id, items, notes } = req.body;
+  const order = await service.createOrder(req.user!.company_id, client_id, items, notes);
+  res.status(201).json(order);
+});
 
-  if (!client_id || !Array.isArray(items) || items.length === 0) {
-    res.status(400).json({ error: 'client_id et items[] sont requis' });
-    return;
-  }
+export const updateStatus = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const order = await service.updateOrderStatus(
+    req.params.id,
+    req.user!.company_id,
+    req.body.status,
+    req.user!.id,
+    req.user!.email,
+    req.user!.role
+  );
+  if (!order) { res.status(404).json({ error: 'Commande introuvable' }); return; }
+  res.json(order);
+});
 
-  try {
-    const order = await service.createOrder(req.user!.company_id, client_id, items, notes);
-    res.status(201).json(order);
-  } catch (err: any) {
-    res.status(400).json({ error: err.message });
-  }
-};
-
-export const updateStatus = async (req: AuthRequest, res: Response): Promise<void> => {
-  const { status } = req.body;
-
-  if (!VALID_STATUSES.includes(status)) {
-    res.status(400).json({ error: `Statut invalide. Valeurs acceptées : ${VALID_STATUSES.join(', ')}` });
-    return;
-  }
-
-  try {
-    const order = await service.updateOrderStatus(
-      req.params.id,
-      req.user!.company_id,
-      status,
-      req.user!.id,
-      req.user!.email,
-      req.user!.role
-    );
-    if (!order) { res.status(404).json({ error: 'Commande introuvable' }); return; }
-    res.json(order);
-  } catch (err: any) {
-    res.status(400).json({ error: err.message });
-  }
-};
-
-export const confirmDelivery = async (req: AuthRequest, res: Response): Promise<void> => {
+export const confirmDelivery = asyncHandler(async (req: AuthRequest, res: Response) => {
   const { token } = req.query;
   if (!token || typeof token !== 'string') {
     res.status(400).json({ error: 'Token manquant' });
     return;
   }
-  try {
-    const result = await service.confirmDelivery(token);
-    res.json({ success: true, confirmed_at: result.client_confirmed_at });
-  } catch (err: any) {
-    res.status(400).json({ error: err.message });
-  }
-};
+  const result = await service.confirmDelivery(token);
+  res.json({ success: true, confirmed_at: result.client_confirmed_at });
+});
 
-export const downloadBL = async (req: AuthRequest, res: Response): Promise<void> => {
+export const downloadBL = asyncHandler(async (req: AuthRequest, res: Response) => {
   const order = await service.getOrderForBL(req.params.id, req.user!.company_id);
   if (!order) { res.status(404).json({ error: 'Commande introuvable' }); return; }
   generateBLPDF(order, res);
-};
+});
 
-export const remove = async (req: AuthRequest, res: Response): Promise<void> => {
+export const remove = asyncHandler(async (req: AuthRequest, res: Response) => {
   try {
     const deleted = await service.deleteOrder(req.params.id, req.user!.company_id);
     if (!deleted) { res.status(404).json({ error: 'Commande introuvable' }); return; }
@@ -90,4 +64,4 @@ export const remove = async (req: AuthRequest, res: Response): Promise<void> => 
   } catch {
     res.status(409).json({ error: 'Impossible de supprimer cette commande' });
   }
-};
+});
