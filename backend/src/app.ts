@@ -18,16 +18,16 @@ import { apiLimiter }   from './middleware/rateLimit';
 
 dotenv.config();
 
+// Logs go to stdout — DigitalOcean captures console output in its log viewer
 export const logger = winston.createLogger({
   level: 'info',
   format: winston.format.combine(
     winston.format.timestamp(),
     winston.format.errors({ stack: true }),
-    winston.format.json()
+    winston.format.simple()
   ),
   transports: [
-    new winston.transports.Console({ format: winston.format.simple() }),
-    new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
+    new winston.transports.Console(),
   ],
 });
 
