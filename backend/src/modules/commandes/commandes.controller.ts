@@ -5,8 +5,13 @@ import * as service from './commandes.service';
 import { generateBLPDF } from '../../utils/bl-pdf';
 
 export const list = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { status } = req.query;
-  const orders = await service.getOrders(req.user!.company_id, status as string | undefined);
+  const { status, limit, offset } = req.query;
+  const orders = await service.getOrders(
+    req.user!.company_id,
+    status as string | undefined,
+    limit ? parseInt(limit as string, 10) : undefined,
+    offset ? parseInt(offset as string, 10) : undefined,
+  );
   res.json(orders);
 });
 

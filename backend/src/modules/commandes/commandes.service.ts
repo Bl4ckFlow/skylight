@@ -77,6 +77,11 @@ export const createOrder = async (
          VALUES ($1, $2, $3, $4)`,
         [order.id, item.product_id, item.quantity, item.unit_price]
       );
+
+      await client.query(
+        `UPDATE products SET stock_quantity = stock_quantity - $1 WHERE id = $2 AND company_id = $3`,
+        [item.quantity, item.product_id, company_id]
+      );
     }
 
     await client.query('COMMIT');

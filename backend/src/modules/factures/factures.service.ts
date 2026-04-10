@@ -1,21 +1,21 @@
 import { pool } from '../../config/db';
 import ExcelJS from 'exceljs';
 
-export const getInvoices = async (company_id: string, payment_status?: string) => {
+export const getInvoices = async (company_id: string, payment_status?: string, limit = 500, offset = 0) => {
   const query = payment_status
     ? `SELECT i.*, o.total_amount, o.created_at AS order_date, c.full_name AS client_name
        FROM invoices i
        JOIN orders o ON o.id = i.order_id
        JOIN clients c ON c.id = o.client_id
        WHERE i.company_id = $1 AND i.payment_status = $2
-       ORDER BY i.created_at DESC`
+       ORDER BY i.created_at DESC LIMIT $3 OFFSET $4`
     : `SELECT i.*, o.total_amount, o.created_at AS order_date, c.full_name AS client_name
        FROM invoices i
        JOIN orders o ON o.id = i.order_id
        JOIN clients c ON c.id = o.client_id
        WHERE i.company_id = $1
-       ORDER BY i.created_at DESC`;
-  const params = payment_status ? [company_id, payment_status] : [company_id];
+       ORDER BY i.created_at DESC LIMIT $2 OFFSET $3`;
+  const params = payment_status ? [company_id, payment_status, limit, offset] : [company_id, limit, offset];
   const result = await pool.query(query, params);
   return result.rows;
 };

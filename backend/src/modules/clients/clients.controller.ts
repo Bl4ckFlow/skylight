@@ -4,7 +4,12 @@ import { asyncHandler } from '../../middleware/asyncHandler';
 import * as service from './clients.service';
 
 export const list = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const clients = await service.getClients(req.user!.company_id);
+  const { limit, offset } = req.query;
+  const clients = await service.getClients(
+    req.user!.company_id,
+    limit ? parseInt(limit as string, 10) : undefined,
+    offset ? parseInt(offset as string, 10) : undefined,
+  );
   res.json(clients);
 });
 

@@ -31,8 +31,10 @@ CREATE TABLE companies (
     bank_rib          VARCHAR(100),
     bank_name2        VARCHAR(255),
     bank_rib2         VARCHAR(100),
-    -- BL counter
+    -- BL / invoice counters
     bl_counter        INTEGER NOT NULL DEFAULT 0,
+    invoice_counter   INTEGER NOT NULL DEFAULT 0,
+    invoice_prefix    VARCHAR(10) NOT NULL DEFAULT 'F',
     created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

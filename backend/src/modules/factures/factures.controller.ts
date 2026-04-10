@@ -5,8 +5,13 @@ import * as service from './factures.service';
 import { generateInvoicePDF } from '../../utils/pdf';
 
 export const list = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { payment_status } = req.query;
-  const invoices = await service.getInvoices(req.user!.company_id, payment_status as string | undefined);
+  const { payment_status, limit, offset } = req.query;
+  const invoices = await service.getInvoices(
+    req.user!.company_id,
+    payment_status as string | undefined,
+    limit ? parseInt(limit as string, 10) : undefined,
+    offset ? parseInt(offset as string, 10) : undefined,
+  );
   res.json(invoices);
 });
 
