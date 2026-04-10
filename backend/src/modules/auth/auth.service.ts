@@ -34,14 +34,9 @@ export const getUsers = async (company_id: string) => {
   return result.rows;
 };
 
-const VALID_ROLES = ['Admin', 'Employé', 'Comptable', 'Commercial', 'Logistique', 'Livreur', 'SuperAdmin'];
+const VALID_ROLES = ['Admin', 'Employé', 'Comptable', 'Commercial', 'Logistique', 'Livreur'];
 
-export const createUser = async (
-  company_id: string,
-  email: string,
-  password: string,
-  role: string
-) => {
+export const createUser = async (company_id: string, email: string, password: string, role: string) => {
   if (!VALID_ROLES.includes(role)) throw new Error(`Rôle invalide : ${role}`);
   const hash = await bcrypt.hash(password, 10);
   const result = await pool.query(
@@ -51,6 +46,25 @@ export const createUser = async (
     [company_id, email, hash, role]
   );
   return result.rows[0];
+};
+
+export const updateUserRole = async (user_id: string, company_id: string, role: string) => {
+  if (!VALID_ROLES.includes(role)) throw new Error(`Rôle invalide : ${role}`);
+  const result = await pool.query(
+    `UPDATE users SET role = $1
+     WHERE id = $2 AND company_id = $3
+     RETURNING id, email, role, created_at`,
+    [role, user_id, company_id]
+  );
+  return result.rows[0] || null;
+};
+
+export const deleteUser = async (user_id: string, company_id: string) => {
+  const result = await pool.query(
+    'DELETE FROM users WHERE id = $1 AND company_id = $2 RETURNING id',
+    [user_id, company_id]
+  );
+  return result.rowCount ? true : false;
 };
 
 export const changePassword = async (user_id: string, newPassword: string) => {

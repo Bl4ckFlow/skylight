@@ -1,21 +1,23 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Plus, UserCircle, Shield } from 'lucide-react';
+import { Plus, UserCircle, Shield, Trash2, ChevronDown } from 'lucide-react';
 import api from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/useToast';
 import ToastList from '@/components/ui/ToastList';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 
-type Role = 'Admin' | 'Comptable' | 'Commercial' | 'Logistique' | 'Livreur';
+type Role = 'Admin' | 'Comptable' | 'Commercial' | 'Logistique' | 'Livreur' | 'Employé';
 
 const ROLES: { value: Role; label: string; description: string; color: string }[] = [
-  { value: 'Admin',      label: 'Admin',      description: 'Accès complet',            color: 'bg-gray-900 text-white' },
-  { value: 'Comptable',  label: 'Comptable',  description: 'Factures',                 color: 'bg-blue-100 text-blue-700' },
-  { value: 'Commercial', label: 'Commercial', description: 'Clients + Commandes',      color: 'bg-green-100 text-green-700' },
-  { value: 'Logistique', label: 'Logistique', description: 'Stock',                    color: 'bg-orange-100 text-orange-700' },
-  { value: 'Livreur',    label: 'Livreur',    description: 'Confirme les livraisons',  color: 'bg-purple-100 text-purple-700' },
+  { value: 'Admin',      label: 'Admin',      description: 'Accès complet',           color: 'bg-gray-900 text-white' },
+  { value: 'Comptable',  label: 'Comptable',  description: 'Factures',                color: 'bg-blue-100 text-blue-700' },
+  { value: 'Commercial', label: 'Commercial', description: 'Clients + Commandes',     color: 'bg-green-100 text-green-700' },
+  { value: 'Logistique', label: 'Logistique', description: 'Stock',                   color: 'bg-orange-100 text-orange-700' },
+  { value: 'Livreur',    label: 'Livreur',    description: 'Confirme les livraisons', color: 'bg-purple-100 text-purple-700' },
+  { value: 'Employé',    label: 'Employé',    description: 'Accès limité',            color: 'bg-gray-100 text-gray-600' },
 ];
 
 interface UserItem {
@@ -28,12 +30,14 @@ interface UserItem {
 export default function UtilisateursPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
-  const [users, setUsers]         = useState<UserItem[]>([]);
-  const [loading, setLoading]     = useState(true);
-  const [showModal, setShowModal] = useState(false);
-  const [saving, setSaving]       = useState(false);
-  const [error, setError]         = useState('');
-  const { toasts, toast, dismiss } = useToast();
+  const [users, setUsers]           = useState<UserItem[]>([]);
+  const [loading, setLoading]       = useState(true);
+  const [showModal, setShowModal]   = useState(false);
+  const [saving, setSaving]         = useState(false);
+  const [error, setError]           = useState('');
+  const [deleteId, setDeleteId]     = useState<string | null>(null);
+  const [roleUserId, setRoleUserId] = useState<string | null>(null);
+  const { toasts, toast, dismiss }  = useToast();
   const [form, setForm] = useState<{ email: string; password: string; role: Role }>({
     email: '', password: '', role: 'Commercial',
   });
@@ -74,6 +78,30 @@ export default function UtilisateursPage() {
     }
   };
 
+  const handleRoleChange = async (userId: string, newRole: Role) => {
+    try {
+      await api.patch(`/auth/users/${userId}/role`, { role: newRole });
+      toast('Rôle mis à jour');
+      fetchUsers();
+    } catch (err: any) {
+      toast(err.response?.data?.error || 'Erreur', 'error');
+    }
+    setRoleUserId(null);
+  };
+
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    try {
+      await api.delete(`/auth/users/${deleteId}`);
+      toast('Utilisateur supprimé');
+      fetchUsers();
+    } catch (err: any) {
+      toast(err.response?.data?.error || 'Erreur', 'error');
+    } finally {
+      setDeleteId(null);
+    }
+  };
+
   if (authLoading || user?.role !== 'Admin') return null;
 
   const getRoleInfo = (role: string) => ROLES.find(r => r.value === role);
@@ -91,7 +119,7 @@ export default function UtilisateursPage() {
       </div>
 
       {/* Légende des rôles */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
         {ROLES.map(r => (
           <div key={r.value} className="card py-3 text-center">
             <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${r.color}`}>{r.label}</span>
@@ -108,6 +136,7 @@ export default function UtilisateursPage() {
         <div className="space-y-2">
           {users.map(u => {
             const roleInfo = getRoleInfo(u.role);
+            const isMe = u.id === user?.id;
             return (
               <div key={u.id} className="card flex items-center gap-4">
                 <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
@@ -116,7 +145,7 @@ export default function UtilisateursPage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="font-medium text-gray-900 truncate">{u.email}</p>
-                    {u.id === user?.id && <span className="text-xs text-gray-400">(vous)</span>}
+                    {isMe && <span className="text-xs text-gray-400">(vous)</span>}
                   </div>
                   {roleInfo && (
                     <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
@@ -124,10 +153,46 @@ export default function UtilisateursPage() {
                     </p>
                   )}
                 </div>
-                {roleInfo && (
-                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 ${roleInfo.color}`}>
-                    {u.role}
-                  </span>
+
+                {/* Role selector */}
+                {!isMe ? (
+                  <div className="relative">
+                    <button
+                      onClick={() => setRoleUserId(roleUserId === u.id ? null : u.id)}
+                      className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 ${roleInfo?.color ?? 'bg-gray-100 text-gray-600'}`}
+                    >
+                      {u.role} <ChevronDown size={11} />
+                    </button>
+                    {roleUserId === u.id && (
+                      <div className="absolute right-0 top-8 z-20 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg overflow-hidden w-44">
+                        {ROLES.map(r => (
+                          <button
+                            key={r.value}
+                            onClick={() => handleRoleChange(u.id, r.value)}
+                            className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors ${u.role === r.value ? 'font-semibold text-primary-950' : 'text-gray-700 dark:text-gray-300'}`}
+                          >
+                            {r.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  roleInfo && (
+                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 ${roleInfo.color}`}>
+                      {u.role}
+                    </span>
+                  )
+                )}
+
+                {/* Delete */}
+                {!isMe && (
+                  <button
+                    onClick={() => setDeleteId(u.id)}
+                    className="p-2 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
+                  >
+                    <Trash2 size={15} />
+                  </button>
                 )}
               </div>
             );
@@ -136,6 +201,19 @@ export default function UtilisateursPage() {
         </div>
       )}
 
+      {/* Confirm delete */}
+      {deleteId && (
+        <ConfirmModal
+          title="Supprimer l'utilisateur ?"
+          message="L'utilisateur perdra immédiatement l'accès. Cette action est irréversible."
+          confirmLabel="Supprimer"
+          danger
+          onConfirm={handleDelete}
+          onCancel={() => setDeleteId(null)}
+        />
+      )}
+
+      {/* Modal création */}
       {showModal && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-end md:items-center justify-center p-4">
           <div className="bg-white dark:bg-gray-900 dark:border dark:border-gray-800 rounded-2xl w-full max-w-md p-6 space-y-4">
@@ -183,6 +261,11 @@ export default function UtilisateursPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Close role dropdown on outside click */}
+      {roleUserId && (
+        <div className="fixed inset-0 z-10" onClick={() => setRoleUserId(null)} />
       )}
 
       <ToastList toasts={toasts} dismiss={dismiss} />

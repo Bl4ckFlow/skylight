@@ -1,14 +1,18 @@
 import rateLimit from 'express-rate-limit';
 
 export const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  windowMs: 15 * 60 * 1000,
+  max: 200,
   message: { error: 'Trop de requêtes, réessayez dans 15min' },
   standardHeaders: true,
   legacyHeaders: false,
   skip: (req) => {
-    // Skip health/auth
-    return ['/health', '/auth/login'].some(p => req.path.includes(p));
+    // Skip PDF/BL downloads and health check — these are file downloads, not API abuse
+    return (
+      req.path.includes('/health') ||
+      req.path.includes('/auth/login') ||
+      req.path.endsWith('/pdf') ||
+      req.path.endsWith('/bl')
+    );
   },
 });
-
