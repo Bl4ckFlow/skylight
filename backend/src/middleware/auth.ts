@@ -13,15 +13,15 @@ export interface AuthRequest extends Request {
 }
 
 export const authenticate = (req: AuthRequest, res: Response, next: NextFunction): void => {
-  const authHeader = req.headers.authorization;
-  const queryToken = req.query.token as string | undefined;
+  // Priority: httpOnly cookie > Authorization header > query param (PDF/BL downloads only)
+  const cookieToken  = (req as any).cookies?.token as string | undefined;
+  const headerToken  = req.headers.authorization?.startsWith('Bearer ')
+    ? req.headers.authorization.split(' ')[1]
+    : undefined;
+  const queryToken   = req.query.token as string | undefined;
 
-  let token: string;
-  if (authHeader?.startsWith('Bearer ')) {
-    token = authHeader.split(' ')[1];
-  } else if (queryToken) {
-    token = queryToken;
-  } else {
+  const token = cookieToken ?? headerToken ?? queryToken;
+  if (!token) {
     res.status(401).json({ error: 'Token manquant ou invalide' });
     return;
   }

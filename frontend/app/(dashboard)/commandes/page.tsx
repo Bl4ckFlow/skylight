@@ -115,9 +115,14 @@ export default function CommandesPage() {
     fetchOrders();
   };
 
-  const downloadBL = (id: string) => {
-    const token = localStorage.getItem('token');
-    window.open(`${process.env.NEXT_PUBLIC_API_URL}/commandes/${id}/bl?token=${token}`, '_blank');
+  const downloadBL = async (id: string) => {
+    const res = await api.get(`/commandes/${id}/bl`, { responseType: 'blob' });
+    const url = URL.createObjectURL(res.data);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `bl-${id}.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const filtered = orders.filter(o =>

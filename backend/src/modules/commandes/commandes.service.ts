@@ -2,11 +2,11 @@ import { pool } from '../../config/db';
 import { generateDeliveryToken, verifyDeliveryToken, sendDeliveryEmail } from '../../utils/mailer';
 import { ORDER_STATUS_RANK } from '../../constants';
 
-export const getOrders = async (company_id: string, status?: string) => {
+export const getOrders = async (company_id: string, status?: string, limit = 500, offset = 0) => {
   const query = status
-    ? 'SELECT o.*, c.full_name AS client_name FROM orders o JOIN clients c ON c.id = o.client_id WHERE o.company_id = $1 AND o.status = $2 ORDER BY o.created_at DESC'
-    : 'SELECT o.*, c.full_name AS client_name FROM orders o JOIN clients c ON c.id = o.client_id WHERE o.company_id = $1 ORDER BY o.created_at DESC';
-  const params = status ? [company_id, status] : [company_id];
+    ? 'SELECT o.*, c.full_name AS client_name FROM orders o JOIN clients c ON c.id = o.client_id WHERE o.company_id = $1 AND o.status = $2 ORDER BY o.created_at DESC LIMIT $3 OFFSET $4'
+    : 'SELECT o.*, c.full_name AS client_name FROM orders o JOIN clients c ON c.id = o.client_id WHERE o.company_id = $1 ORDER BY o.created_at DESC LIMIT $2 OFFSET $3';
+  const params = status ? [company_id, status, limit, offset] : [company_id, limit, offset];
   const result = await pool.query(query, params);
   return result.rows;
 };

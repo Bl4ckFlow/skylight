@@ -16,8 +16,7 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
     try {
-      const res = await api.post('/auth/login', { email, password });
-      localStorage.setItem('token', res.data.token);
+      await api.post('/auth/login', { email, password });
       router.push('/');
     } catch (err: any) {
       setError(err.response?.data?.error || 'Identifiants incorrects');

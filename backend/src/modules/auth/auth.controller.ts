@@ -3,10 +3,28 @@ import { loginUser, createUser, getUsers, updateUserRole, deleteUser, changePass
 import { AuthRequest } from '../../middleware/auth';
 import { asyncHandler } from '../../middleware/asyncHandler';
 
+const COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'strict' as const,
+  maxAge: 60 * 60 * 24 * 7 * 1000, // 7 days in ms
+  path: '/',
+};
+
+const setAuthCookie = (res: Response, token: string) => {
+  res.cookie('token', token, COOKIE_OPTIONS);
+};
+
 export const login = asyncHandler(async (req: Request, res: Response) => {
   const data = await loginUser(req.body.email, req.body.password);
-  res.json(data);
+  setAuthCookie(res, data.token);
+  res.json({ user: data.user });
 });
+
+export const logout = (_req: Request, res: Response) => {
+  res.clearCookie('token', { path: '/' });
+  res.status(204).send();
+};
 
 export const register = asyncHandler(async (req: AuthRequest, res: Response) => {
   try {
@@ -24,7 +42,8 @@ export const me = asyncHandler(async (req: AuthRequest, res: Response) => {
 
 export const updatePassword = asyncHandler(async (req: AuthRequest, res: Response) => {
   const data = await changePassword(req.user!.id, req.body.password);
-  res.json(data);
+  setAuthCookie(res, data.token);
+  res.json({ user: data.user });
 });
 
 export const listUsers = asyncHandler(async (req: AuthRequest, res: Response) => {

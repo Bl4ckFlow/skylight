@@ -109,9 +109,11 @@ CREATE TABLE orders (
     created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_orders_company_id ON orders(company_id);
-CREATE INDEX idx_orders_client_id  ON orders(client_id);
-CREATE INDEX idx_orders_status     ON orders(status);
+CREATE INDEX idx_orders_company_id        ON orders(company_id);
+CREATE INDEX idx_orders_client_id         ON orders(client_id);
+CREATE INDEX idx_orders_status            ON orders(status);
+CREATE INDEX idx_orders_company_status    ON orders(company_id, status);
+CREATE INDEX idx_orders_company_createdat ON orders(company_id, created_at DESC);
 
 -- ============================================
 -- 6. ORDER ITEMS
@@ -156,8 +158,9 @@ CREATE TABLE invoices (
     created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_invoices_company_id     ON invoices(company_id);
-CREATE INDEX idx_invoices_payment_status ON invoices(payment_status);
+CREATE INDEX idx_invoices_company_id             ON invoices(company_id);
+CREATE INDEX idx_invoices_payment_status         ON invoices(payment_status);
+CREATE INDEX idx_invoices_company_payment_status ON invoices(company_id, payment_status);
 
 -- ============================================
 -- 9. INVOICE LOGS
@@ -187,8 +190,9 @@ CREATE TABLE stock_movements (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_stock_movements_product_id ON stock_movements(product_id);
-CREATE INDEX idx_stock_movements_company_id ON stock_movements(company_id);
+CREATE INDEX idx_stock_movements_product_id  ON stock_movements(product_id);
+CREATE INDEX idx_stock_movements_company_id  ON stock_movements(company_id);
+CREATE INDEX idx_stock_movements_created_at  ON stock_movements(created_at DESC);
 
 -- ============================================
 -- NOTE: Stock is managed in the application layer (commandes.service.ts)

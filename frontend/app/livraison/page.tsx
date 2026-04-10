@@ -16,7 +16,7 @@ function LivraisonContent() {
     const token = params.get('token');
     if (!token) { setState('error'); setErrorMsg('Lien invalide.'); return; }
 
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/commandes/confirm-delivery?token=${token}`)
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/v1/commandes/confirm-delivery?token=${token}`)
       .then(async res => {
         const data = await res.json();
         if (res.ok) {

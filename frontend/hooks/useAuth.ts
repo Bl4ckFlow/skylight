@@ -11,12 +11,6 @@ export const useAuth = () => {
   const router = useRouter();
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      setLoading(false);
-      router.push('/login');
-      return;
-    }
     api.get('/auth/me')
       .then((res) => {
         setUser(res.data);
@@ -25,14 +19,13 @@ export const useAuth = () => {
         }
       })
       .catch(() => {
-        localStorage.removeItem('token');
         router.push('/login');
       })
       .finally(() => setLoading(false));
   }, [router]);
 
-  const logout = () => {
-    localStorage.removeItem('token');
+  const logout = async () => {
+    await api.post('/auth/logout').catch(() => {});
     router.push('/login');
   };
 

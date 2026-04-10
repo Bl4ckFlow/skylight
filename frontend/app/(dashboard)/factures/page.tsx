@@ -81,9 +81,14 @@ export default function FacturesPage() {
     setLogsLoading(false);
   };
 
-  const downloadPDF = (id: string) => {
-    const token = localStorage.getItem('token');
-    window.open(`${process.env.NEXT_PUBLIC_API_URL}/factures/${id}/pdf?token=${token}`, '_blank');
+  const downloadPDF = async (id: string) => {
+    const res = await api.get(`/factures/${id}/pdf`, { responseType: 'blob' });
+    const url = URL.createObjectURL(res.data);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `facture-${id}.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (

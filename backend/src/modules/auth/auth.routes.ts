@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { login, register, me, listUsers, updatePassword, changeUserRole, removeUser } from './auth.controller';
+import { login, logout, register, me, listUsers, updatePassword, changeUserRole, removeUser } from './auth.controller';
 import { authenticate, requireAdmin } from '../../middleware/auth';
 import { validate } from '../../middleware/validate';
 import { loginLimiter } from '../../middleware/rateLimit';
@@ -14,6 +14,7 @@ const roleSchema = z.object({
 });
 
 router.post('/login',               loginLimiter, validate(loginSchema), login);
+router.post('/logout',              logout);
 router.get('/me',                   authenticate, me);
 router.get('/users',                authenticate, requireAdmin, listUsers);
 router.post('/register',            authenticate, requireAdmin, validate(registerSchema), register);

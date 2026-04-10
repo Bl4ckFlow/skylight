@@ -13,10 +13,10 @@ type ClientData = {
   ai?: string;
 };
 
-export const getClients = async (company_id: string) => {
+export const getClients = async (company_id: string, limit = 500, offset = 0) => {
   const result = await pool.query(
-    'SELECT * FROM clients WHERE company_id = $1 ORDER BY full_name ASC',
-    [company_id]
+    'SELECT * FROM clients WHERE company_id = $1 ORDER BY full_name ASC LIMIT $2 OFFSET $3',
+    [company_id, limit, offset]
   );
   return result.rows;
 };

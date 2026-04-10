@@ -2,6 +2,7 @@
 
 import Sidebar from '@/components/layout/Sidebar';
 import BottomNav from '@/components/layout/BottomNav';
+import ErrorBoundary from '@/components/ui/ErrorBoundary';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -23,7 +24,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       <main className="flex-1 overflow-auto pb-20 md:pb-0">
         <div className="max-w-6xl mx-auto px-4 py-6">
-          {children}
+          <ErrorBoundary>{children}</ErrorBoundary>
         </div>
       </main>
 
