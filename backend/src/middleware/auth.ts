@@ -26,9 +26,10 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
     return;
   }
 
-  let decoded: AuthRequest['user'] & { token_version?: number };
+  type JwtPayload = Required<AuthRequest['user']> & { token_version?: number; iat?: number; exp?: number };
+  let decoded: JwtPayload;
   try {
-    decoded = jwt.verify(token, process.env.JWT_SECRET as string) as any;
+    decoded = jwt.verify(token, process.env.JWT_SECRET as string) as JwtPayload;
   } catch {
     res.status(401).json({ error: 'Token expiré ou invalide' });
     return;

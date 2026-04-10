@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { pool } from '../../config/db';
+import { ROLES } from '../../constants';
 
 export const loginUser = async (email: string, password: string) => {
   const result = await pool.query(
@@ -34,7 +35,7 @@ export const getUsers = async (company_id: string) => {
   return result.rows;
 };
 
-const VALID_ROLES = ['Admin', 'Employé', 'Comptable', 'Commercial', 'Logistique', 'Livreur'];
+const VALID_ROLES: readonly string[] = ROLES;
 
 export const createUser = async (company_id: string, email: string, password: string, role: string) => {
   if (!VALID_ROLES.includes(role)) throw new Error(`Rôle invalide : ${role}`);

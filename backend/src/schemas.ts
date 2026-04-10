@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ROLES, ORDER_STATUSES, PAYMENT_STATUSES } from './constants';
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
 export const loginSchema = z.object({
@@ -14,7 +15,7 @@ export const changePasswordSchema = z.object({
 export const registerSchema = z.object({
   email:    z.string().min(1, 'Email requis'),
   password: z.string().min(6, 'Minimum 6 caractères'),
-  role:     z.enum(['Admin', 'Employé', 'Comptable', 'Commercial', 'Logistique', 'Livreur']).default('Commercial'),
+  role:     z.enum(ROLES).default('Commercial'),
 });
 
 // ── Clients ───────────────────────────────────────────────────────────────────
@@ -48,7 +49,7 @@ export const createOrderSchema = z.object({
 });
 
 export const updateStatusSchema = z.object({
-  status: z.enum(['En attente', 'En cours', 'Livrée']),
+  status: z.enum(ORDER_STATUSES),
 });
 
 // ── Stock ─────────────────────────────────────────────────────────────────────
@@ -74,7 +75,7 @@ export const createInvoiceSchema = z.object({
 });
 
 export const invoicePaymentSchema = z.object({
-  payment_status: z.enum(['Payé', 'Non Payé']),
+  payment_status: z.enum(PAYMENT_STATUSES),
 });
 
 // ── Types ─────────────────────────────────────────────────────────────────────

@@ -50,7 +50,7 @@ app.use(cors({
   credentials: true,
 }));
 app.use(express.json({ limit: '10mb' }));
-app.use(apiLimiter as any);
+app.use(apiLimiter);
 
 // Routes
 app.use('/api/auth',      authRoutes);

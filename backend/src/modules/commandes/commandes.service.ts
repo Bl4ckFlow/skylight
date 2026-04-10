@@ -1,11 +1,6 @@
 import { pool } from '../../config/db';
 import { generateDeliveryToken, verifyDeliveryToken, sendDeliveryEmail } from '../../utils/mailer';
-
-const STATUS_ORDER: Record<string, number> = {
-  'En attente': 0,
-  'En cours':   1,
-  'Livrée':     2,
-};
+import { ORDER_STATUS_RANK } from '../../constants';
 
 export const getOrders = async (company_id: string, status?: string) => {
   const query = status
@@ -124,7 +119,7 @@ export const updateOrderStatus = async (
 
   const { status: currentStatus, client_email, client_name, company_name, items } = current.rows[0];
 
-  if (STATUS_ORDER[newStatus] <= STATUS_ORDER[currentStatus]) {
+  if (ORDER_STATUS_RANK[newStatus as keyof typeof ORDER_STATUS_RANK] <= ORDER_STATUS_RANK[currentStatus as keyof typeof ORDER_STATUS_RANK]) {
     throw new Error(`Impossible de revenir à "${newStatus}" depuis "${currentStatus}"`);
   }
 
@@ -133,54 +128,67 @@ export const updateOrderStatus = async (
     [newStatus, id, company_id]
   );
 
-  await pool.query(
-    `INSERT INTO order_logs (order_id, from_status, to_status, changed_by_user_id, changed_by_email)
-     VALUES ($1, $2, $3, $4, $5)`,
-    [id, currentStatus, newStatus, userId, userEmail]
-  );
+  await logStatusChange(id, currentStatus, newStatus, userId, userEmail);
 
-  // Auto-create draft invoice when order is delivered (idempotent)
   if (newStatus === 'Livrée') {
-    const existing = await pool.query(
-      'SELECT id FROM invoices WHERE order_id = $1',
-      [id]
-    );
-    if (!existing.rows[0]) {
-      const company = await pool.query(
-        `UPDATE companies SET invoice_counter = COALESCE(invoice_counter, 0) + 1
-         WHERE id = $1 RETURNING invoice_counter, invoice_prefix`,
-        [company_id]
-      );
-      const { invoice_counter, invoice_prefix } = company.rows[0];
-      const now = new Date();
-      const yymm = `${String(now.getFullYear()).slice(2)}${String(now.getMonth() + 1).padStart(2, '0')}`;
-      const invoice_number = `${invoice_prefix || 'F'}${yymm}${String(invoice_counter).padStart(4, '0')}`;
-      await pool.query(
-        `INSERT INTO invoices (company_id, order_id, invoice_number) VALUES ($1, $2, $3)`,
-        [company_id, id, invoice_number]
-      );
-    }
-  }
-
-  // Send delivery confirmation email when status becomes "Livrée"
-  if (newStatus === 'Livrée' && client_email) {
-    const token = generateDeliveryToken(id, company_id);
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-    const confirmUrl = `${frontendUrl}/livraison?token=${token}`;
-
-    const order = result.rows[0];
-    sendDeliveryEmail({
-      to: client_email,
-      clientName: client_name,
-      companyName: company_name,
-      orderDate: new Date(order.created_at).toLocaleDateString('fr-FR'),
-      totalAmount: Number(order.total_amount),
-      items: items || [],
-      confirmUrl,
-    }).catch(err => console.error('[mailer] delivery email failed:', err));
+    await createAutoInvoice(id, company_id);
+    sendDeliveryConfirmation(id, company_id, result.rows[0], { client_email, client_name, company_name, items });
   }
 
   return result.rows[0];
+};
+
+const logStatusChange = async (
+  order_id: string,
+  from_status: string,
+  to_status: string,
+  userId: string,
+  userEmail: string
+) => {
+  await pool.query(
+    `INSERT INTO order_logs (order_id, from_status, to_status, changed_by_user_id, changed_by_email)
+     VALUES ($1, $2, $3, $4, $5)`,
+    [order_id, from_status, to_status, userId, userEmail]
+  );
+};
+
+const createAutoInvoice = async (order_id: string, company_id: string) => {
+  const existing = await pool.query('SELECT id FROM invoices WHERE order_id = $1', [order_id]);
+  if (existing.rows[0]) return;
+
+  const company = await pool.query(
+    `UPDATE companies SET invoice_counter = COALESCE(invoice_counter, 0) + 1
+     WHERE id = $1 RETURNING invoice_counter, invoice_prefix`,
+    [company_id]
+  );
+  const { invoice_counter, invoice_prefix } = company.rows[0];
+  const now = new Date();
+  const yymm = `${String(now.getFullYear()).slice(2)}${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const invoice_number = `${invoice_prefix || 'F'}${yymm}${String(invoice_counter).padStart(4, '0')}`;
+  await pool.query(
+    `INSERT INTO invoices (company_id, order_id, invoice_number) VALUES ($1, $2, $3)`,
+    [company_id, order_id, invoice_number]
+  );
+};
+
+const sendDeliveryConfirmation = (
+  order_id: string,
+  company_id: string,
+  order: any,
+  ctx: { client_email: string; client_name: string; company_name: string; items: any[] }
+) => {
+  if (!ctx.client_email) return;
+  const token = generateDeliveryToken(order_id, company_id);
+  const confirmUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/livraison?token=${token}`;
+  sendDeliveryEmail({
+    to: ctx.client_email,
+    clientName: ctx.client_name,
+    companyName: ctx.company_name,
+    orderDate: new Date(order.created_at).toLocaleDateString('fr-FR'),
+    totalAmount: Number(order.total_amount),
+    items: ctx.items || [],
+    confirmUrl,
+  }).catch(err => console.error('[mailer] delivery email failed:', err));
 };
 
 export const confirmDelivery = async (token: string) => {
