@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 // Auth Schemas
 export const loginSchema = z.object({
-  email: z.string().email('Email invalide'),
+  email: z.string().min(1, 'Email requis'),
   password: z.string().min(6, 'Mot de passe trop court'),
 });
 
@@ -12,10 +12,15 @@ export const changePasswordSchema = z.object({
 
 // Clients
 export const clientSchema = z.object({
-  full_name: z.string().min(2, 'Nom requis').max(255),
-  phone: z.string().optional(),
-  email: z.string().email().optional(),
-  address: z.string().max(500).optional(),
+  full_name:   z.string().min(2, 'Nom requis').max(255),
+  phone:       z.string().optional(),
+  email:       z.string().optional().or(z.literal('')),
+  address:     z.string().max(500).optional(),
+  client_type: z.enum(['Particulier', 'Entreprise']).default('Particulier'),
+  nif:         z.string().optional(),
+  nis:         z.string().optional(),
+  rc:          z.string().optional(),
+  ai:          z.string().optional(),
 });
 
 // Commandes
